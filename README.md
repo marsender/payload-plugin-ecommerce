@@ -58,6 +58,8 @@ This fork includes the following enhancements:
 
 - **`deleteAddress()` function in EcommerceProvider**: Exposes a `deleteAddress(addressID)` function via `useEcommerce()` and `useAddresses()` hooks. This allows deleting addresses directly through the provider, which automatically refreshes the addresses list after deletion.
 
+- **Simplified address `customer` field auto-assignment**: The `beforeChange` hook on the addresses collection now automatically sets the `customer` field to the current user's ID if not already provided. This works for all authenticated users (customers, admins, or users with multiple roles). Admins can still override by explicitly providing a `customer` ID when creating an address for another user.
+
 ## Contributing
 
 Contributions are welcome! Please open an issue or submit a pull request.

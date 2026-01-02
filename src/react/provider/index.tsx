@@ -733,18 +733,14 @@ export const EcommerceProvider: React.FC<ContextProps> = ({
         throw new Error(`Address fetch error: ${data.error}`)
       }
 
-      if (data.docs && data.docs.length > 0) {
-        setAddresses(data.docs)
-      }
+      setAddresses(data.docs ?? [])
     } catch (error) {
       if (debug) {
         // eslint-disable-next-line no-console
         console.error('Error fetching addresses:', error)
       }
-      setAddresses(undefined)
-      throw new Error(
-        `Failed to fetch addresses: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      )
+      setAddresses([])
+      // Don't rethrow - allow the operation to complete even if refresh fails
     }
   }, [user, baseAPIURL, addressesSlug, debug])
 
