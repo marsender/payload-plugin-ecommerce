@@ -31,14 +31,14 @@ export const amountField: (props: Props) => NumberField = ({
             currenciesConfig,
             currency,
           },
-          path: '@payloadcms/plugin-ecommerce/client#PriceCell',
+          path: '@marsender/payload-plugin-ecommerce/client#PriceCell',
         },
         Field: {
           clientProps: {
             currenciesConfig,
             currency,
           },
-          path: '@payloadcms/plugin-ecommerce/rsc#PriceInput',
+          path: '@marsender/payload-plugin-ecommerce/rsc#PriceInput',
         },
         ...overrides?.admin?.components,
       },

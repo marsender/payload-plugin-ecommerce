@@ -64,7 +64,7 @@ export const createVariantsCollection: (props: Props) => CollectionConfig = (pro
       admin: {
         components: {
           Field: {
-            path: '@payloadcms/plugin-ecommerce/rsc#VariantOptionsSelector',
+            path: '@marsender/payload-plugin-ecommerce/rsc#VariantOptionsSelector',
           },
         },
       },
