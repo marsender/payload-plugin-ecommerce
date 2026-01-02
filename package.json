@@ -19,43 +19,43 @@
   "type": "module",
   "exports": {
     ".": {
-      "import": "./src/index.ts",
-      "types": "./src/index.ts",
-      "default": "./src/index.ts"
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
     "./types": {
-      "import": "./src/exports/types.ts",
-      "types": "./src/exports/types.ts",
-      "default": "./src/exports/types.ts"
+      "import": "./dist/exports/types.js",
+      "types": "./dist/exports/types.d.ts",
+      "default": "./dist/exports/types.js"
     },
     "./payments/stripe": {
-      "import": "./src/exports/payments/stripe.ts",
-      "types": "./src/exports/payments/stripe.ts",
-      "default": "./src/exports/payments/stripe.ts"
+      "import": "./dist/exports/payments/stripe.js",
+      "types": "./dist/exports/payments/stripe.d.ts",
+      "default": "./dist/exports/payments/stripe.js"
     },
     "./rsc": {
-      "import": "./src/exports/rsc.ts",
-      "types": "./src/exports/rsc.ts",
-      "default": "./src/exports/rsc.ts"
+      "import": "./dist/exports/rsc.js",
+      "types": "./dist/exports/rsc.d.ts",
+      "default": "./dist/exports/rsc.js"
     },
     "./translations": {
-      "import": "./src/exports/translations.ts",
-      "types": "./src/exports/translations.ts",
-      "default": "./src/exports/translations.ts"
+      "import": "./dist/exports/translations.js",
+      "types": "./dist/exports/translations.d.ts",
+      "default": "./dist/exports/translations.js"
     },
     "./client": {
-      "import": "./src/exports/client/index.ts",
-      "types": "./src/exports/client/index.ts",
-      "default": "./src/exports/client/index.ts"
+      "import": "./dist/exports/client/index.js",
+      "types": "./dist/exports/client/index.d.ts",
+      "default": "./dist/exports/client/index.js"
     },
     "./client/react": {
-      "import": "./src/exports/client/react.ts",
-      "types": "./src/exports/client/react.ts",
-      "default": "./src/exports/client/react.ts"
+      "import": "./dist/exports/client/react.js",
+      "types": "./dist/exports/client/react.d.ts",
+      "default": "./dist/exports/client/react.js"
     }
   },
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "files": [
     "src",
     "dist"
@@ -75,6 +75,7 @@
   "devDependencies": {
     "@swc/cli": "^0.5.2",
     "@swc/core": "^1.10.4",
+    "@types/json-schema": "^7.0.15",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "copyfiles": "^2.4.1",
