@@ -1,4 +1,8 @@
+import path from 'path'
+import { fileURLToPath } from 'url'
 import tseslint from 'typescript-eslint'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export default [
   // Global ignores
@@ -8,6 +12,15 @@ export default [
 
   // TypeScript ESLint
   ...tseslint.configs.recommended,
+
+  // Parser options with explicit tsconfigRootDir
+  {
+    languageOptions: {
+      parserOptions: {
+        tsconfigRootDir: __dirname,
+      },
+    },
+  },
 
   // Custom rules
   {
