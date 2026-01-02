@@ -143,7 +143,6 @@ export const FormattedInput: React.FC<Props> = ({
           <span>{currency.symbol}</span>
         </div>
 
-        {/* eslint-disable-next-line jsx-a11y/control-has-associated-label */}
         <input
           className={`${baseClass}Input`}
           disabled={disabled || readOnly}

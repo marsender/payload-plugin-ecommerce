@@ -28,6 +28,7 @@ const defaultContext: EcommerceContextType = {
   clearCart: async () => {},
   confirmOrder: async () => {},
   createAddress: async () => {},
+  deleteAddress: async () => {},
   currenciesConfig: {
     defaultCurrency: 'USD',
     supportedCurrencies: [
@@ -50,6 +51,7 @@ const defaultContext: EcommerceContextType = {
   initiatePayment: async () => {},
   isLoading: false,
   paymentMethods: [],
+  refreshUser: async () => {},
   removeItem: async () => {},
   setCurrency: () => {},
   updateAddress: async () => {},
@@ -677,6 +679,28 @@ export const EcommerceProvider: React.FC<ContextProps> = ({
     }
   }, [baseAPIURL, customersSlug, debug])
 
+  const refreshUser = useCallback<EcommerceContextType['refreshUser']>(async () => {
+    try {
+      const fetchedUser = await getUser()
+      if (fetchedUser && fetchedUser.cart?.docs && fetchedUser.cart.docs.length > 0) {
+        const userCartID =
+          typeof fetchedUser.cart.docs[0] === 'object'
+            ? fetchedUser.cart.docs[0].id
+            : fetchedUser.cart.docs[0]
+
+        if (userCartID) {
+          const fetchedCart = await getCart(userCartID)
+          setCart(fetchedCart)
+          setCartID(userCartID)
+        }
+      }
+    } catch (error) {
+      // User is not logged in, clear cart state for authenticated user
+      setUser(null)
+      // Don't clear cart - keep localStorage cart for guest
+    }
+  }, [getCart, getUser])
+
   const getAddresses = useCallback(async () => {
     if (!user) {
       return
@@ -810,6 +834,48 @@ export const EcommerceProvider: React.FC<ContextProps> = ({
     [user, baseAPIURL, addressesSlug, getAddresses, debug],
   )
 
+  const deleteAddress = useCallback<EcommerceContextType['deleteAddress']>(
+    async (addressID) => {
+      if (!user) {
+        throw new Error('User must be logged in to delete an address')
+      }
+
+      try {
+        const response = await fetch(`${baseAPIURL}/${addressesSlug}/${addressID}`, {
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          method: 'DELETE',
+        })
+
+        if (!response.ok) {
+          const errorText = await response.text()
+          throw new Error(`Failed to delete address: ${errorText}`)
+        }
+
+        const data = await response.json()
+
+        if (data.error) {
+          throw new Error(`Address delete error: ${data.error}`)
+        }
+
+        // Refresh addresses after deleting
+        await getAddresses()
+      } catch (error) {
+        if (debug) {
+          // eslint-disable-next-line no-console
+          console.error('Error deleting address:', error)
+        }
+
+        throw new Error(
+          `Failed to delete address: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        )
+      }
+    },
+    [user, baseAPIURL, addressesSlug, getAddresses, debug],
+  )
+
   // If localStorage is enabled, restore cart from storage
   useEffect(() => {
     if (!hasRendered.current) {
@@ -840,17 +906,19 @@ export const EcommerceProvider: React.FC<ContextProps> = ({
 
       hasRendered.current = true
 
-      void getUser().then((user) => {
-        if (user && user.cart?.docs && user.cart.docs.length > 0) {
-          // If the user has carts, we can set the cartID to the first cart
-          const cartID =
-            typeof user.cart.docs[0] === 'object' ? user.cart.docs[0].id : user.cart.docs[0]
+      // Helper function to load user's cart
+      const loadUserCart = (userData: TypedUser) => {
+        if (userData.cart?.docs && userData.cart.docs.length > 0) {
+          const userCartID =
+            typeof userData.cart.docs[0] === 'object'
+              ? userData.cart.docs[0].id
+              : userData.cart.docs[0]
 
-          if (cartID) {
-            getCart(cartID)
+          if (userCartID) {
+            getCart(userCartID)
               .then((fetchedCart) => {
                 setCart(fetchedCart)
-                setCartID(cartID)
+                setCartID(userCartID)
               })
               .catch((error) => {
                 if (debug) {
@@ -864,6 +932,13 @@ export const EcommerceProvider: React.FC<ContextProps> = ({
                 throw new Error(`Failed to fetch user cart: ${error.message}`)
               })
           }
+        }
+      }
+
+      // Fetch user from API
+      void getUser().then((fetchedUser) => {
+        if (fetchedUser) {
+          loadUserCart(fetchedUser)
         }
       })
     }
@@ -888,6 +963,7 @@ export const EcommerceProvider: React.FC<ContextProps> = ({
         clearCart,
         confirmOrder,
         createAddress,
+        deleteAddress,
         currenciesConfig,
         currency: selectedCurrency,
         decrementItem,
@@ -895,6 +971,7 @@ export const EcommerceProvider: React.FC<ContextProps> = ({
         initiatePayment,
         isLoading,
         paymentMethods,
+        refreshUser,
         removeItem,
         selectedPaymentMethod,
         setCurrency,
@@ -987,11 +1064,11 @@ export const usePayments = () => {
 }
 
 export function useAddresses<T extends AddressesCollection>() {
-  const { addresses, createAddress, isLoading, updateAddress } = useEcommerce()
+  const { addresses, createAddress, deleteAddress, isLoading, updateAddress } = useEcommerce()
 
   if (!createAddress) {
-    throw new Error('usePayments must be used within an EcommerceProvider')
+    throw new Error('useAddresses must be used within an EcommerceProvider')
   }
 
-  return { addresses: addresses as T[], createAddress, isLoading, updateAddress }
+  return { addresses: addresses as T[], createAddress, deleteAddress, isLoading, updateAddress }
 }

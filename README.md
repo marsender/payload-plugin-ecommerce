@@ -54,7 +54,9 @@ export default buildConfig({
 
 This fork includes the following enhancements:
 
-- _(Add your changes here)_
+- **`refreshUser()` function in EcommerceProvider**: Exposes a `refreshUser()` function via `useEcommerce()` hook that allows the app to refresh the user state on demand. Call this after login/logout to sync the EcommerceProvider with the current auth state, enabling proper client-side navigation without full page reloads.
+
+- **`deleteAddress()` function in EcommerceProvider**: Exposes a `deleteAddress(addressID)` function via `useEcommerce()` and `useAddresses()` hooks. This allows deleting addresses directly through the provider, which automatically refreshes the addresses list after deletion.
 
 ## Contributing
 

@@ -851,6 +851,10 @@ export type EcommerceContextType<T extends EcommerceCollections = EcommerceColle
    */
   createAddress: (data: Partial<T['addresses']>) => Promise<void>
   /**
+   * Delete an address by its ID.
+   */
+  deleteAddress: (addressID: DefaultDocumentIDType) => Promise<void>
+  /**
    * The configuration for the currencies used in the ecommerce context.
    */
   currenciesConfig: CurrenciesConfig
@@ -891,6 +895,11 @@ export type EcommerceContextType<T extends EcommerceCollections = EcommerceColle
    * This is used to determine which payment method to use when initiating a payment.
    */
   selectedPaymentMethod?: null | string
+  /**
+   * Refresh the user state by re-fetching from the API.
+   * Call this after login/logout to sync the EcommerceProvider with the current auth state.
+   */
+  refreshUser: () => Promise<void>
   /**
    * Change the currency for the cart, it defaults to the configured currency.
    * This will update the currency used for pricing and calculations.
