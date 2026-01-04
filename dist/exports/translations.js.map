@@ -1,0 +1,1 @@
+{"version":3,"sources":["../../src/exports/translations.ts"],"sourcesContent":["export { en } from '../translations/en.js'\n"],"names":["en"],"mappings":"AAAA,SAASA,EAAE,QAAQ,wBAAuB"}
