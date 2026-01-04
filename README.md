@@ -118,6 +118,8 @@ This fork includes the following enhancements:
 
 - **Stripe Connect support**: Added `resolveConnectedAccount` option to `stripeAdapter()` that enables routing payments to different Stripe Connected Accounts. This is useful for marketplace/multi-vendor scenarios where each seller or coach has their own Stripe account. The connected account ID is stored in the transaction record for reference.
 
+- **Stripe SDK v20 (Clover)**: Upgraded to Stripe Node.js SDK v20 with API version `2025-09-30.clover`. This version uses Stripe's new biannual release train versioning. See [Stripe's versioning policy](https://docs.stripe.com/sdks/versioning) for details.
+
 ## Contributing
 
 Contributions are welcome! Please open an issue or submit a pull request.

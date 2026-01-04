@@ -93,7 +93,7 @@
     "payload": "^3.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "stripe": "^18.0.0"
+    "stripe": "^20.0.0"
   },
   "peerDependenciesMeta": {
     "stripe": {

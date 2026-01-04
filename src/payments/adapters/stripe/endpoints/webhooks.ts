@@ -23,7 +23,7 @@ export const webhooksEndpoint: (props: Props) => Endpoint = (props) => {
         // API version can only be the latest, stripe recommends ts ignoring it
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore - ignoring since possible versions are not type safe, only the latest version is recognised
-        apiVersion: apiVersion || '2025-03-31.basil',
+        apiVersion: apiVersion || '2025-09-30.clover',
         appInfo: appInfo || {
           name: 'Stripe Payload Plugin',
           url: 'https://payloadcms.com',

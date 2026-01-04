@@ -51,7 +51,7 @@ export const initiatePayment: (props: Props) => NonNullable<PaymentAdapter>['ini
       // API version can only be the latest, stripe recommends ts ignoring it
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore - ignoring since possible versions are not type safe, only the latest version is recognised
-      apiVersion: apiVersion || '2025-06-30.preview',
+      apiVersion: apiVersion || '2025-09-30.clover',
       appInfo: appInfo || {
         name: 'Stripe Payload Plugin',
         url: 'https://payloadcms.com',
