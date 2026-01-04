@@ -7,9 +7,6 @@ A fork of [@payloadcms/plugin-ecommerce](https://github.com/payloadcms/payload/t
 ```bash
 # From GitHub
 pnpm add github:marsender/payload-plugin-ecommerce
-
-# Or with a specific branch/tag
-pnpm add github:marsender/payload-plugin-ecommerce#main
 ```
 
 ## Usage
@@ -20,24 +17,24 @@ import { ecommercePlugin } from '@marsender/payload-plugin-ecommerce'
 import { stripeAdapter } from '@marsender/payload-plugin-ecommerce/payments/stripe'
 
 export default buildConfig({
-  plugins: [
-    ecommercePlugin({
-      customers: {
-        slug: 'users',
-      },
-      payments: {
-        paymentMethods: [
-          stripeAdapter({
-            stripeSecretKey: process.env.STRIPE_SECRET_KEY!,
-          }),
-        ],
-      },
-      currencies: {
-        supportedCurrencies: ['USD', 'EUR'],
-        defaultCurrency: 'USD',
-      },
-    }),
-  ],
+	plugins: [
+		ecommercePlugin({
+			customers: {
+				slug: 'users',
+			},
+			payments: {
+				paymentMethods: [
+					stripeAdapter({
+						stripeSecretKey: process.env.STRIPE_SECRET_KEY!,
+					}),
+				],
+			},
+			currencies: {
+				supportedCurrencies: ['USD', 'EUR'],
+				defaultCurrency: 'USD',
+			},
+		}),
+	],
 })
 ```
 
@@ -66,40 +63,39 @@ import { ecommercePlugin } from '@marsender/payload-plugin-ecommerce'
 import { stripeAdapter } from '@marsender/payload-plugin-ecommerce/payments/stripe'
 
 export default buildConfig({
-  plugins: [
-    ecommercePlugin({
-      customers: { slug: 'users' },
-      payments: {
-        paymentMethods: [
-          stripeAdapter({
-            secretKey: process.env.STRIPE_SECRET_KEY!,
-            publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!,
-            webhookSecret: process.env.STRIPE_WEBHOOKS_SIGNING_SECRET!,
-            // Resolve the connected account from cart items
-            resolveConnectedAccount: async ({ cart, req }) => {
-              const firstItem = cart.items?.[0]
-              if (!firstItem) return undefined
+	plugins: [
+		ecommercePlugin({
+			customers: { slug: 'users' },
+			payments: {
+				paymentMethods: [
+					stripeAdapter({
+						secretKey: process.env.STRIPE_SECRET_KEY!,
+						publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!,
+						webhookSecret: process.env.STRIPE_WEBHOOKS_SIGNING_SECRET!,
+						// Resolve the connected account from cart items
+						resolveConnectedAccount: async ({ cart, req }) => {
+							const firstItem = cart.items?.[0]
+							if (!firstItem) return undefined
 
-              const productId =
-                typeof firstItem.product === 'object' ? firstItem.product.id : firstItem.product
+							const productId = typeof firstItem.product === 'object' ? firstItem.product.id : firstItem.product
 
-              const product = await req.payload.findByID({
-                collection: 'products',
-                id: productId,
-                depth: 1,
-              })
+							const product = await req.payload.findByID({
+								collection: 'products',
+								id: productId,
+								depth: 1,
+							})
 
-              // Return the coach's/vendor's Stripe Connect account ID
-              const coach = product.coach
-              if (!coach || typeof coach !== 'object') return undefined
+							// Return the coach's/vendor's Stripe Connect account ID
+							const coach = product.coach
+							if (!coach || typeof coach !== 'object') return undefined
 
-              return coach.stripeConnectAccountId || undefined
-            },
-          }),
-        ],
-      },
-    }),
-  ],
+							return coach.stripeConnectAccountId || undefined
+						},
+					}),
+				],
+			},
+		}),
+	],
 })
 ```
 
