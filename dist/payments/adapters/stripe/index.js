@@ -2,7 +2,7 @@ import { confirmOrder } from './confirmOrder.js';
 import { webhooksEndpoint } from './endpoints/webhooks.js';
 import { initiatePayment } from './initiatePayment.js';
 export const stripeAdapter = (props)=>{
-    const { apiVersion, appInfo, groupOverrides, secretKey, webhooks, webhookSecret } = props;
+    const { apiVersion, appInfo, groupOverrides, resolveConnectedAccount, secretKey, webhooks, webhookSecret } = props;
     const label = props?.label || 'Stripe';
     const baseFields = [
         {
@@ -14,6 +14,14 @@ export const stripeAdapter = (props)=>{
             name: 'paymentIntentID',
             type: 'text',
             label: 'Stripe PaymentIntent ID'
+        },
+        {
+            name: 'connectedAccountId',
+            type: 'text',
+            label: 'Stripe Connected Account ID',
+            admin: {
+                description: 'The Stripe Connected Account ID that received this payment (for Stripe Connect)'
+            }
         }
     ];
     const groupField = {
@@ -51,6 +59,7 @@ export const stripeAdapter = (props)=>{
         initiatePayment: initiatePayment({
             apiVersion,
             appInfo,
+            resolveConnectedAccount,
             secretKey
         }),
         label

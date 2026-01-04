@@ -1,7 +1,7 @@
 import Stripe from 'stripe';
 export const initiatePayment = (props)=>async ({ data, req, transactionsSlug })=>{
         const payload = req.payload;
-        const { apiVersion, appInfo, secretKey } = props || {};
+        const { apiVersion, appInfo, resolveConnectedAccount, secretKey } = props || {};
         const customerEmail = data.customerEmail;
         const currency = data.currency;
         const cart = data.cart;
@@ -52,7 +52,16 @@ export const initiatePayment = (props)=>async ({ data, req, transactionsSlug })=
                 };
             });
             const shippingAddressAsString = JSON.stringify(shippingAddressFromData);
-            const paymentIntent = await stripe.paymentIntents.create({
+            // Resolve the connected account ID if the resolver function is provided
+            let connectedAccountId;
+            if (resolveConnectedAccount) {
+                connectedAccountId = await resolveConnectedAccount({
+                    cart,
+                    req
+                });
+            }
+            // Build the PaymentIntent create params
+            const paymentIntentParams = {
                 amount,
                 automatic_payment_methods: {
                     enabled: true
@@ -62,9 +71,19 @@ export const initiatePayment = (props)=>async ({ data, req, transactionsSlug })=
                 metadata: {
                     cartID: cart.id,
                     cartItemsSnapshot: JSON.stringify(flattenedCart),
-                    shippingAddress: shippingAddressAsString
+                    shippingAddress: shippingAddressAsString,
+                    ...connectedAccountId && {
+                        connectedAccountId
+                    }
                 }
-            });
+            };
+            // Add Stripe Connect transfer_data if a connected account is resolved
+            if (connectedAccountId) {
+                paymentIntentParams.transfer_data = {
+                    destination: connectedAccountId
+                };
+            }
+            const paymentIntent = await stripe.paymentIntents.create(paymentIntentParams);
             // Create a transaction for the payment intent in the database
             const transaction = await payload.create({
                 collection: transactionsSlug,
@@ -83,7 +102,10 @@ export const initiatePayment = (props)=>async ({ data, req, transactionsSlug })=
                     status: 'pending',
                     stripe: {
                         customerID: customer.id,
-                        paymentIntentID: paymentIntent.id
+                        paymentIntentID: paymentIntent.id,
+                        ...connectedAccountId && {
+                            connectedAccountId
+                        }
                     }
                 }
             });

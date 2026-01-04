@@ -12,6 +12,19 @@ type StripeWebhookHandlers = {
      */
     [webhookName: string]: StripeWebhookHandler;
 };
+/**
+ * Arguments for resolving the Stripe Connect account ID from cart data.
+ * Used when payments need to be routed to different connected accounts.
+ */
+export type ResolveConnectedAccountArgs = {
+    cart: import('../../../types/index.js').Cart;
+    req: PayloadRequest;
+};
+/**
+ * Function type for resolving the Stripe Connect account ID.
+ * Should return the connected account ID (e.g., 'acct_1234xyz') or undefined if no connected account should be used.
+ */
+export type ResolveConnectedAccountFn = (args: ResolveConnectedAccountArgs) => Promise<string | undefined> | string | undefined;
 export type StripeAdapterArgs = {
     /**
      * This library's types only reflect the latest API version.
@@ -31,6 +44,25 @@ export type StripeAdapterArgs = {
     secretKey: string;
     webhooks?: StripeWebhookHandlers;
     webhookSecret?: string;
+    /**
+     * Optional function to resolve the Stripe Connect account ID from the cart.
+     * When provided, payments will be routed to the connected account using `transfer_data`.
+     * This is useful for marketplace scenarios where different sellers/coaches have their own Stripe accounts.
+     *
+     * @example
+     * ```ts
+     * resolveConnectedAccount: async ({ cart, req }) => {
+     *   // Get the first product's coach and return their Stripe Connect account ID
+     *   const product = await req.payload.findByID({
+     *     collection: 'products',
+     *     id: cart.items[0].product,
+     *     depth: 1,
+     *   })
+     *   return product.coach?.stripeConnectAccountId
+     * }
+     * ```
+     */
+    resolveConnectedAccount?: ResolveConnectedAccountFn;
 } & PaymentAdapterArgs;
 export declare const stripeAdapter: (props: StripeAdapterArgs) => PaymentAdapter;
 export type StripeAdapterClientArgs = {
