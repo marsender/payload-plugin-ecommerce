@@ -1,6 +1,6 @@
 'use client';
 import { jsx as _jsx } from "react/jsx-runtime";
-import { deepMergeSimple } from 'payload/shared';
+import { deepMergeSimple, formatAdminURL } from 'payload/shared';
 import * as qs from 'qs-esm';
 import React, { createContext, use, useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 const defaultContext = {
@@ -55,8 +55,11 @@ export const EcommerceProvider = ({ addressesSlug = 'addresses', api, cartsSlug 
         ...defaultLocalStorage,
         ...syncLocalStorage
     } : defaultLocalStorage;
-    const { apiRoute = '/api', cartsFetchQuery = {}, serverURL = '' } = api || {};
-    const baseAPIURL = `${serverURL}${apiRoute}`;
+    const { apiRoute = '/api', cartsFetchQuery = {} } = api || {};
+    const baseAPIURL = formatAdminURL({
+        apiRoute,
+        path: ''
+    });
     const [isLoading, startTransition] = useTransition();
     const [user, setUser] = useState(null);
     const [addresses, setAddresses] = useState();

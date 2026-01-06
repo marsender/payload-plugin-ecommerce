@@ -1,6 +1,6 @@
 {
   "name": "@marsender/payload-plugin-ecommerce",
-  "version": "1.0.0",
+  "version": "3.70.0",
   "description": "Ecommerce plugin for Payload - Fork with custom enhancements",
   "keywords": [
     "payload",
@@ -15,7 +15,7 @@
     "url": "https://github.com/marsender/payload-plugin-ecommerce.git"
   },
   "license": "MIT",
-  "author": "Marsender",
+  "author": "Payload <dev@payloadcms.com> (https://payloadcms.com) and Opale-concept <marsender@opale-concept.com> (for modificaitons)",
   "type": "module",
   "exports": {
     ".": {
