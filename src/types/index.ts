@@ -866,11 +866,11 @@ export type EcommerceContextType<T extends EcommerceCollections = EcommerceColle
    * Decrement an item in the cart by its index ID.
    * If quantity reaches 0, the item will be removed from the cart.
    */
-  decrementItem: (item: DefaultDocumentIDType) => Promise<void>
+  decrementItem: (item: number | string) => Promise<void>
   /**
    * Increment an item in the cart by its index ID.
    */
-  incrementItem: (item: DefaultDocumentIDType) => Promise<void>
+  incrementItem: (item: number | string) => Promise<void>
   /**
    * Initiate a payment using the selected payment method.
    * This method should be called after the cart is ready for checkout.
@@ -889,7 +889,7 @@ export type EcommerceContextType<T extends EcommerceCollections = EcommerceColle
   /**
    * Remove an item from the cart by its index ID.
    */
-  removeItem: (item: DefaultDocumentIDType) => Promise<void>
+  removeItem: (item: number | string) => Promise<void>
   /**
    * The name of the currently selected payment method.
    * This is used to determine which payment method to use when initiating a payment.

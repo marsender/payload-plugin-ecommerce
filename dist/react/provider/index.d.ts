@@ -18,10 +18,10 @@ export declare function useCart<T extends CartsCollection>(): {
     }, quantity?: number) => Promise<void>;
     cart: T;
     clearCart: () => Promise<void>;
-    decrementItem: (item: DefaultDocumentIDType) => Promise<void>;
-    incrementItem: (item: DefaultDocumentIDType) => Promise<void>;
+    decrementItem: (item: number | string) => Promise<void>;
+    incrementItem: (item: number | string) => Promise<void>;
     isLoading: boolean;
-    removeItem: (item: DefaultDocumentIDType) => Promise<void>;
+    removeItem: (item: number | string) => Promise<void>;
 };
 export declare const usePayments: () => {
     confirmOrder: (paymentMethodID: string, options?: {
