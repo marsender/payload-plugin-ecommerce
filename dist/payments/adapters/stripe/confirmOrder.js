@@ -36,8 +36,7 @@ export const confirmOrder = (props)=>async ({ data, ordersSlug = 'orders', req, 
                     'stripe.paymentIntentID': {
                         equals: paymentIntentID
                     }
-                },
-                overrideAccess: true
+                }
             });
             const transaction = transactionsResults.docs[0];
             if (!transactionsResults.totalDocs || !transaction) {
@@ -58,7 +57,6 @@ export const confirmOrder = (props)=>async ({ data, ordersSlug = 'orders', req, 
             const cart = await payload.findByID({
                 collection: 'carts',
                 id: cartID,
-                overrideAccess: true,
                 select: {
                     id: true,
                     tenant: true
@@ -96,7 +94,6 @@ export const confirmOrder = (props)=>async ({ data, ordersSlug = 'orders', req, 
             await payload.update({
                 id: cartID,
                 collection: 'carts',
-                overrideAccess: true,
                 data: {
                     purchasedAt: timestamp
                 }
@@ -115,7 +112,6 @@ export const confirmOrder = (props)=>async ({ data, ordersSlug = 'orders', req, 
                 transactionID: transaction.id
             };
         } catch (error) {
-            console.log(error);
             payload.logger.error(error, 'Error initiating payment with Stripe');
             throw new Error(error instanceof Error ? error.message : 'Unknown error initiating payment');
         }

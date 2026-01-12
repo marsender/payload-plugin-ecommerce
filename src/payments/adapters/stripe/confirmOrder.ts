@@ -59,7 +59,6 @@ export const confirmOrder: (props: Props) => NonNullable<PaymentAdapter>['confir
 						equals: paymentIntentID,
 					},
 				},
-				overrideAccess: true,
 			})
 
 			const transaction = transactionsResults.docs[0]
@@ -88,7 +87,6 @@ export const confirmOrder: (props: Props) => NonNullable<PaymentAdapter>['confir
 			const cart = await payload.findByID({
 				collection: 'carts',
 				id: cartID,
-				overrideAccess: true,
 				select: {
 					id: true,
 					tenant: true,
@@ -126,7 +124,6 @@ export const confirmOrder: (props: Props) => NonNullable<PaymentAdapter>['confir
 			await payload.update({
 				id: cartID,
 				collection: 'carts',
-				overrideAccess: true,
 				data: {
 					purchasedAt: timestamp,
 				},
@@ -147,7 +144,6 @@ export const confirmOrder: (props: Props) => NonNullable<PaymentAdapter>['confir
 				transactionID: transaction.id,
 			}
 		} catch (error) {
-			console.log(error)
 			payload.logger.error(error, 'Error initiating payment with Stripe')
 
 			throw new Error(error instanceof Error ? error.message : 'Unknown error initiating payment')

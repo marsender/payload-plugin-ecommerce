@@ -41,7 +41,7 @@ import { addDataAndFileToRequest } from 'payload';
                     id: cartID,
                     collection: cartsSlug,
                     depth: 2,
-                    overrideAccess: true,
+                    overrideAccess: false,
                     select: {
                         id: true,
                         currency: true,
