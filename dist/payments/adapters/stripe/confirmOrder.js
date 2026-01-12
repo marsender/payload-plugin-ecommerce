@@ -53,6 +53,8 @@ export const confirmOrder = (props)=>async ({ data, ordersSlug = 'orders', req, 
             if (!cartItemsSnapshot || !Array.isArray(cartItemsSnapshot)) {
                 throw new Error('Cart items snapshot not found or invalid in the PaymentIntent metadata');
             }
+            // Extract tenant from transaction for multi-tenant support
+            const transactionTenant = typeof transaction.tenant === 'object' ? transaction.tenant?.id : transaction.tenant;
             const order = await payload.create({
                 collection: ordersSlug,
                 data: {
@@ -68,7 +70,10 @@ export const confirmOrder = (props)=>async ({ data, ordersSlug = 'orders', req, 
                     status: 'processing',
                     transactions: [
                         transaction.id
-                    ]
+                    ],
+                    ...transactionTenant && {
+                        tenant: transactionTenant
+                    }
                 }
             });
             const timestamp = new Date().toISOString();
