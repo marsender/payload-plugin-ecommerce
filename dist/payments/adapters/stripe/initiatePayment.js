@@ -84,8 +84,11 @@ export const initiatePayment = (props)=>async ({ data, req, transactionsSlug })=
                 };
             }
             const paymentIntent = await stripe.paymentIntents.create(paymentIntentParams);
+            // Extract tenant from cart for multi-tenant support
+            // @ts-expect-error - tenant field may be added by multi-tenant plugin
+            const cartTenant = typeof cart.tenant === 'object' ? cart.tenant?.id : cart.tenant;
             // Create a transaction for the payment intent in the database
-            const transaction = await payload.create({
+            await payload.create({
                 collection: transactionsSlug,
                 data: {
                     ...req.user ? {
@@ -106,6 +109,9 @@ export const initiatePayment = (props)=>async ({ data, req, transactionsSlug })=
                         ...connectedAccountId && {
                             connectedAccountId
                         }
+                    },
+                    ...cartTenant && {
+                        tenant: cartTenant
                     }
                 }
             });

@@ -36,7 +36,8 @@ export const confirmOrder = (props)=>async ({ data, ordersSlug = 'orders', req, 
                     'stripe.paymentIntentID': {
                         equals: paymentIntentID
                     }
-                }
+                },
+                overrideAccess: true
             });
             const transaction = transactionsResults.docs[0];
             if (!transactionsResults.totalDocs || !transaction) {
@@ -53,8 +54,25 @@ export const confirmOrder = (props)=>async ({ data, ordersSlug = 'orders', req, 
             if (!cartItemsSnapshot || !Array.isArray(cartItemsSnapshot)) {
                 throw new Error('Cart items snapshot not found or invalid in the PaymentIntent metadata');
             }
-            // Extract tenant from transaction for multi-tenant support
-            const transactionTenant = typeof transaction.tenant === 'object' ? transaction.tenant?.id : transaction.tenant;
+            // Fetch the cart to get the tenant (needed for multi-tenant support)
+            const cart = await payload.findByID({
+                collection: 'carts',
+                id: cartID,
+                overrideAccess: true,
+                select: {
+                    id: true,
+                    tenant: true
+                }
+            });
+            if (!cart) {
+                throw new Error(`Cart with ID ${cartID} not found`);
+            }
+            // Extract tenant from cart for multi-tenant support
+            // @ts-expect-error - tenant field may be added by multi-tenant plugin
+            const cartTenant = typeof cart.tenant === 'object' ? cart.tenant?.id : cart.tenant;
+            if (!cartTenant) {
+                throw new Error(`Cart ${cartID} has no tenant assigned`);
+            }
             const order = await payload.create({
                 collection: ordersSlug,
                 data: {
@@ -71,9 +89,7 @@ export const confirmOrder = (props)=>async ({ data, ordersSlug = 'orders', req, 
                     transactions: [
                         transaction.id
                     ],
-                    ...transactionTenant && {
-                        tenant: transactionTenant
-                    }
+                    tenant: cartTenant
                 }
             });
             const timestamp = new Date().toISOString();
