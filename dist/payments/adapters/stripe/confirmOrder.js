@@ -80,6 +80,7 @@ export const confirmOrder = (props)=>async ({ data, ordersSlug = 'orders', req, 
             await payload.update({
                 id: cartID,
                 collection: 'carts',
+                overrideAccess: true,
                 data: {
                     purchasedAt: timestamp
                 }
@@ -98,6 +99,7 @@ export const confirmOrder = (props)=>async ({ data, ordersSlug = 'orders', req, 
                 transactionID: transaction.id
             };
         } catch (error) {
+            console.log(error);
             payload.logger.error(error, 'Error initiating payment with Stripe');
             throw new Error(error instanceof Error ? error.message : 'Unknown error initiating payment');
         }
