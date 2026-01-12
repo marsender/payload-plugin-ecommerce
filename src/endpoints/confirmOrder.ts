@@ -99,7 +99,7 @@ export const confirmOrderHandler: ConfirmOrderHandler =
           id: cartID,
           collection: cartsSlug,
           depth: 2,
-          overrideAccess: false,
+          overrideAccess: true,
           select: {
             id: true,
             currency: true,
