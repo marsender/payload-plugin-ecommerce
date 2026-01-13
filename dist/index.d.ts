@@ -16,4 +16,11 @@ export { currencyField } from './fields/currencyField.js';
 export { pricesField } from './fields/pricesField.js';
 export { statusField } from './fields/statusField.js';
 export { variantsFields } from './fields/variantsFields.js';
+export { addItem } from './collections/carts/operations/addItem.js';
+export { clearCart } from './collections/carts/operations/clearCart.js';
+export { defaultCartItemMatcher } from './collections/carts/operations/defaultCartItemMatcher.js';
+export { mergeCart } from './collections/carts/operations/mergeCart.js';
+export { removeItem } from './collections/carts/operations/removeItem.js';
+export { updateItem } from './collections/carts/operations/updateItem.js';
+export type { AddItemArgs, CartItemData, CartItemMatcher, CartItemMatcherArgs, CartOperationResult, ClearCartArgs, NewCartItem, RemoveItemArgs, UpdateItemArgs, } from './collections/carts/operations/types.js';
 //# sourceMappingURL=index.d.ts.map

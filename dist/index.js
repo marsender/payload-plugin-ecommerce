@@ -60,7 +60,8 @@ export const ecommercePlugin = (pluginConfig)=>async (incomingConfig)=>{
                     currenciesConfig,
                     inventory: sanitizedPluginConfig.inventory,
                     productsSlug: collectionSlugMap.products,
-                    variantOptionsSlug: collectionSlugMap.variantOptions
+                    variantOptionsSlug: collectionSlugMap.variantOptions,
+                    variantTypesSlug: collectionSlugMap.variantTypes
                 });
                 const variants = variantsConfig && typeof variantsConfig === 'object' && 'variantsCollectionOverride' in variantsConfig && variantsConfig.variantsCollectionOverride ? await variantsConfig.variantsCollectionOverride({
                     defaultCollection: defaultVariantsCollection
@@ -98,6 +99,7 @@ export const ecommercePlugin = (pluginConfig)=>async (incomingConfig)=>{
                 const defaultCartsCollection = createCartsCollection({
                     access: accessConfig,
                     allowGuestCarts: cartsConfig.allowGuestCarts,
+                    cartItemMatcher: cartsConfig.cartItemMatcher,
                     currenciesConfig,
                     customersSlug: collectionSlugMap.customers,
                     enableVariants: Boolean(productsConfig.variants),
@@ -221,5 +223,12 @@ export { currencyField } from './fields/currencyField.js';
 export { pricesField } from './fields/pricesField.js';
 export { statusField } from './fields/statusField.js';
 export { variantsFields } from './fields/variantsFields.js';
+// Cart operations - server-side functions for cart manipulation
+export { addItem } from './collections/carts/operations/addItem.js';
+export { clearCart } from './collections/carts/operations/clearCart.js';
+export { defaultCartItemMatcher } from './collections/carts/operations/defaultCartItemMatcher.js';
+export { mergeCart } from './collections/carts/operations/mergeCart.js';
+export { removeItem } from './collections/carts/operations/removeItem.js';
+export { updateItem } from './collections/carts/operations/updateItem.js';
 
 //# sourceMappingURL=index.js.map

@@ -2,10 +2,19 @@
 import { jsx as _jsx } from "react/jsx-runtime";
 import { deepMergeSimple, formatAdminURL } from 'payload/shared';
 import * as qs from 'qs-esm';
-import React, { createContext, use, useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import React, { createContext, use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 const defaultContext = {
     addItem: async ()=>{},
     clearCart: async ()=>{},
+    clearSession: ()=>{},
+    config: {
+        addressesSlug: 'addresses',
+        api: {
+            apiRoute: '/api'
+        },
+        cartsSlug: 'carts',
+        customersSlug: 'users'
+    },
     confirmOrder: async ()=>{},
     createAddress: async ()=>{},
     deleteAddress: async ()=>{},
@@ -30,11 +39,16 @@ const defaultContext = {
     incrementItem: async ()=>{},
     initiatePayment: async ()=>{},
     isLoading: false,
+    mergeCart: async ()=>({}),
+    onLogin: async ()=>{},
+    onLogout: ()=>{},
     paymentMethods: [],
+    refreshCart: async ()=>{},
     refreshUser: async ()=>{},
     removeItem: async ()=>{},
     setCurrency: ()=>{},
-    updateAddress: async ()=>{}
+    updateAddress: async ()=>{},
+    user: null
 };
 const EcommerceContext = /*#__PURE__*/ createContext(defaultContext);
 const defaultLocalStorage = {
@@ -60,7 +74,20 @@ export const EcommerceProvider = ({ addressesSlug = 'addresses', api, cartsSlug 
         apiRoute,
         path: ''
     });
-    const [isLoading, startTransition] = useTransition();
+    const config = useMemo(()=>({
+            addressesSlug,
+            api: {
+                apiRoute
+            },
+            cartsSlug,
+            customersSlug
+        }), [
+        addressesSlug,
+        apiRoute,
+        cartsSlug,
+        customersSlug
+    ]);
+    const [isLoading, setIsLoading] = useState(false);
     const [user, setUser] = useState(null);
     const [addresses, setAddresses] = useState();
     const hasRendered = useRef(false);
@@ -242,222 +269,273 @@ export const EcommerceProvider = ({ addressesSlug = 'addresses', api, cartsSlug 
         syncLocalStorage
     ]);
     const addItem = useCallback(async (item, quantity = 1)=>{
-        return new Promise((resolve)=>{
-            startTransition(async ()=>{
-                if (cartID) {
-                    const existingCart = await getCart(cartID, {
+        setIsLoading(true);
+        try {
+            if (cartID) {
+                // Use server-side endpoint for adding items
+                const response = await fetch(`${baseAPIURL}/${cartsSlug}/${cartID}/add-item`, {
+                    body: JSON.stringify({
+                        item,
+                        quantity,
                         secret: cartSecret
-                    });
-                    if (!existingCart) {
-                        // console.error(`Cart with ID "${cartID}" not found`)
-                        setCartID(undefined);
-                        setCart(undefined);
-                        return;
-                    }
-                    // Check if the item already exists in the cart
-                    const existingItemIndex = existingCart.items?.findIndex((cartItem)=>{
-                        const productID = typeof cartItem.product === 'object' ? cartItem.product.id : item.product;
-                        const variantID = cartItem.variant && typeof cartItem.variant === 'object' ? cartItem.variant.id : item.variant;
-                        return productID === item.product && (item.variant && variantID ? variantID === item.variant : true);
-                    }) ?? -1;
-                    let updatedItems = existingCart.items ? [
-                        ...existingCart.items
-                    ] : [];
-                    if (existingItemIndex !== -1) {
-                        // If the item exists, update its quantity
-                        updatedItems[existingItemIndex].quantity = updatedItems[existingItemIndex].quantity + quantity;
-                        // Update the cart with the new items
-                        await updateCart(cartID, {
-                            items: updatedItems
-                        });
-                    } else {
-                        // If the item does not exist, add it to the cart
-                        updatedItems = [
-                            ...existingCart.items ?? [],
-                            {
-                                ...item,
-                                quantity
-                            }
-                        ];
-                    }
-                    // Update the cart with the new items
-                    await updateCart(cartID, {
-                        items: updatedItems
-                    });
-                } else {
-                    // If no cartID exists, create a new cart
-                    const newCart = await createCart({
-                        items: [
-                            {
-                                ...item,
-                                quantity
-                            }
-                        ]
-                    });
-                    setCartID(newCart.id);
-                    setCart(newCart);
+                    }),
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    method: 'POST'
+                });
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Failed to add item: ${errorText}`);
                 }
-                resolve();
-            });
-        });
+                const result = await response.json();
+                if (!result.success) {
+                    // Cart not found - reset state
+                    setCartID(undefined);
+                    setCart(undefined);
+                    setCartSecret(undefined);
+                    return;
+                }
+                // Refresh cart with proper depth/populate settings for UI
+                const refreshedCart = await getCart(cartID, {
+                    secret: cartSecret
+                });
+                setCart(refreshedCart);
+            } else {
+                // If no cartID exists, create a new cart with the item
+                const newCart = await createCart({
+                    items: [
+                        {
+                            ...item,
+                            quantity
+                        }
+                    ]
+                });
+                setCartID(newCart.id);
+                setCart(newCart);
+            }
+        } catch (error) {
+            if (debug) {
+                // eslint-disable-next-line no-console
+                console.error('Error adding item to cart:', error);
+            }
+        } finally{
+            setIsLoading(false);
+        }
     }, [
+        baseAPIURL,
         cartID,
         cartSecret,
+        cartsSlug,
         createCart,
-        getCart,
-        startTransition,
-        updateCart
+        debug,
+        getCart
     ]);
     const removeItem = useCallback(async (targetID)=>{
-        return new Promise((resolve)=>{
-            startTransition(async ()=>{
-                if (!cartID) {
-                    resolve();
-                    return;
-                }
-                const existingCart = await getCart(cartID, {
+        if (!cartID) {
+            return;
+        }
+        setIsLoading(true);
+        try {
+            const response = await fetch(`${baseAPIURL}/${cartsSlug}/${cartID}/remove-item`, {
+                body: JSON.stringify({
+                    itemID: targetID,
                     secret: cartSecret
-                });
-                if (!existingCart) {
-                    // console.error(`Cart with ID "${cartID}" not found`)
-                    setCartID(undefined);
-                    setCart(undefined);
-                    resolve();
-                    return;
-                }
-                // Check if the item already exists in the cart
-                const existingItemIndex = existingCart.items?.findIndex((cartItem)=>cartItem.id === targetID) ?? -1;
-                if (existingItemIndex !== -1) {
-                    // If the item exists, remove it from the cart
-                    const updatedItems = existingCart.items ? [
-                        ...existingCart.items
-                    ] : [];
-                    updatedItems.splice(existingItemIndex, 1);
-                    // Update the cart with the new items
-                    await updateCart(cartID, {
-                        items: updatedItems
-                    });
-                }
-                resolve();
+                }),
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                method: 'POST'
             });
-        });
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Failed to remove item: ${errorText}`);
+            }
+            const result = await response.json();
+            if (!result.success) {
+                // Cart not found - reset state
+                setCartID(undefined);
+                setCart(undefined);
+                setCartSecret(undefined);
+                return;
+            }
+            // Refresh cart with proper depth/populate settings for UI
+            const refreshedCart = await getCart(cartID, {
+                secret: cartSecret
+            });
+            setCart(refreshedCart);
+        } catch (error) {
+            if (debug) {
+                // eslint-disable-next-line no-console
+                console.error('Error removing item from cart:', error);
+            }
+        } finally{
+            setIsLoading(false);
+        }
     }, [
+        baseAPIURL,
         cartID,
         cartSecret,
-        getCart,
-        startTransition,
-        updateCart
+        cartsSlug,
+        debug,
+        getCart
     ]);
     const incrementItem = useCallback(async (targetID)=>{
-        return new Promise((resolve)=>{
-            startTransition(async ()=>{
-                if (!cartID) {
-                    resolve();
-                    return;
-                }
-                const existingCart = await getCart(cartID, {
+        if (!cartID) {
+            return;
+        }
+        setIsLoading(true);
+        try {
+            const response = await fetch(`${baseAPIURL}/${cartsSlug}/${cartID}/update-item`, {
+                body: JSON.stringify({
+                    itemID: targetID,
+                    quantity: {
+                        $inc: 1
+                    },
                     secret: cartSecret
-                });
-                if (!existingCart) {
-                    // console.error(`Cart with ID "${cartID}" not found`)
-                    setCartID(undefined);
-                    setCart(undefined);
-                    resolve();
-                    return;
-                }
-                // Check if the item already exists in the cart
-                const existingItemIndex = existingCart.items?.findIndex((cartItem)=>cartItem.id === targetID) ?? -1;
-                let updatedItems = existingCart.items ? [
-                    ...existingCart.items
-                ] : [];
-                if (existingItemIndex !== -1) {
-                    // If the item exists, increment its quantity
-                    updatedItems[existingItemIndex].quantity = updatedItems[existingItemIndex].quantity + 1; // Increment by 1
-                    // Update the cart with the new items
-                    await updateCart(cartID, {
-                        items: updatedItems
-                    });
-                } else {
-                    // If the item does not exist, add it to the cart with quantity 1
-                    updatedItems = [
-                        ...existingCart.items ?? [],
-                        {
-                            product: targetID,
-                            quantity: 1
-                        }
-                    ];
-                    // Update the cart with the new items
-                    await updateCart(cartID, {
-                        items: updatedItems
-                    });
-                }
-                resolve();
+                }),
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                method: 'POST'
             });
-        });
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Failed to increment item: ${errorText}`);
+            }
+            const result = await response.json();
+            if (!result.success) {
+                // Cart not found - reset state
+                setCartID(undefined);
+                setCart(undefined);
+                setCartSecret(undefined);
+                return;
+            }
+            // Refresh cart with proper depth/populate settings for UI
+            const refreshedCart = await getCart(cartID, {
+                secret: cartSecret
+            });
+            setCart(refreshedCart);
+        } catch (error) {
+            if (debug) {
+                // eslint-disable-next-line no-console
+                console.error('Error incrementing item quantity:', error);
+            }
+        } finally{
+            setIsLoading(false);
+        }
     }, [
+        baseAPIURL,
         cartID,
         cartSecret,
-        getCart,
-        startTransition,
-        updateCart
+        cartsSlug,
+        debug,
+        getCart
     ]);
     const decrementItem = useCallback(async (targetID)=>{
-        return new Promise((resolve)=>{
-            startTransition(async ()=>{
-                if (!cartID) {
-                    resolve();
-                    return;
-                }
-                const existingCart = await getCart(cartID, {
+        if (!cartID) {
+            return;
+        }
+        setIsLoading(true);
+        try {
+            const response = await fetch(`${baseAPIURL}/${cartsSlug}/${cartID}/update-item`, {
+                body: JSON.stringify({
+                    itemID: targetID,
+                    quantity: {
+                        $inc: -1
+                    },
                     secret: cartSecret
-                });
-                if (!existingCart) {
-                    // console.error(`Cart with ID "${cartID}" not found`)
-                    setCartID(undefined);
-                    setCart(undefined);
-                    resolve();
-                    return;
-                }
-                // Check if the item already exists in the cart
-                const existingItemIndex = existingCart.items?.findIndex((cartItem)=>cartItem.id === targetID) ?? -1;
-                const updatedItems = existingCart.items ? [
-                    ...existingCart.items
-                ] : [];
-                if (existingItemIndex !== -1) {
-                    // If the item exists, decrement its quantity
-                    updatedItems[existingItemIndex].quantity = updatedItems[existingItemIndex].quantity - 1; // Decrement by 1
-                    // If the quantity reaches 0, remove the item from the cart
-                    if (updatedItems[existingItemIndex].quantity <= 0) {
-                        updatedItems.splice(existingItemIndex, 1);
-                    }
-                    // Update the cart with the new items
-                    await updateCart(cartID, {
-                        items: updatedItems
-                    });
-                }
-                resolve();
+                }),
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                method: 'POST'
             });
-        });
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Failed to decrement item: ${errorText}`);
+            }
+            const result = await response.json();
+            if (!result.success) {
+                // Cart not found - reset state
+                setCartID(undefined);
+                setCart(undefined);
+                setCartSecret(undefined);
+                return;
+            }
+            // Refresh cart with proper depth/populate settings for UI
+            const refreshedCart = await getCart(cartID, {
+                secret: cartSecret
+            });
+            setCart(refreshedCart);
+        } catch (error) {
+            if (debug) {
+                // eslint-disable-next-line no-console
+                console.error('Error decrementing item quantity:', error);
+            }
+        } finally{
+            setIsLoading(false);
+        }
     }, [
+        baseAPIURL,
         cartID,
         cartSecret,
-        getCart,
-        startTransition,
-        updateCart
+        cartsSlug,
+        debug,
+        getCart
     ]);
     const clearCart = useCallback(async ()=>{
-        return new Promise((resolve)=>{
-            startTransition(async ()=>{
-                if (cartID) {
-                    await deleteCart(cartID);
-                }
-                resolve();
+        if (!cartID) {
+            return;
+        }
+        setIsLoading(true);
+        try {
+            const response = await fetch(`${baseAPIURL}/${cartsSlug}/${cartID}/clear`, {
+                body: JSON.stringify({
+                    secret: cartSecret
+                }),
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                method: 'POST'
             });
-        });
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Failed to clear cart: ${errorText}`);
+            }
+            const result = await response.json();
+            if (!result.success) {
+                // Cart not found - reset state
+                setCartID(undefined);
+                setCart(undefined);
+                setCartSecret(undefined);
+                return;
+            }
+            // Refresh cart with proper depth/populate settings for UI
+            const refreshedCart = await getCart(cartID, {
+                secret: cartSecret
+            });
+            setCart(refreshedCart);
+        } catch (error) {
+            if (debug) {
+                // eslint-disable-next-line no-console
+                console.error('Error clearing cart:', error);
+            }
+        } finally{
+            setIsLoading(false);
+        }
     }, [
+        baseAPIURL,
         cartID,
-        deleteCart,
-        startTransition
+        cartSecret,
+        cartsSlug,
+        debug,
+        getCart
     ]);
     const setCurrency = useCallback((currency)=>{
         if (selectedCurrency.code === currency) {
@@ -779,6 +857,175 @@ export const EcommerceProvider = ({ addressesSlug = 'addresses', api, cartsSlug 
         getAddresses,
         debug
     ]);
+    /**
+   * Refresh the cart data from the server.
+   */ const refreshCart = useCallback(async ()=>{
+        if (!cartID) {
+            return;
+        }
+        const updatedCart = await getCart(cartID, {
+            secret: cartSecret
+        });
+        setCart(updatedCart);
+    }, [
+        cartID,
+        cartSecret,
+        getCart
+    ]);
+    /**
+   * Clears all ecommerce session data from state and localStorage.
+   * Used during logout to ensure no user data persists.
+   */ const clearSession = useCallback(()=>{
+        setCart(undefined);
+        setCartID(undefined);
+        setCartSecret(undefined);
+        setAddresses(undefined);
+        setUser(null);
+        if (syncLocalStorage) {
+            localStorage.removeItem(localStorageConfig.key);
+            localStorage.removeItem(`${localStorageConfig.key}_secret`);
+        }
+    }, [
+        localStorageConfig.key,
+        syncLocalStorage
+    ]);
+    /**
+   * Called during logout. Clears all session data.
+   */ const onLogout = useCallback(()=>{
+        clearSession();
+    }, [
+        clearSession
+    ]);
+    /**
+   * Merges items from a source cart into a target cart.
+   * Useful for merging a guest cart into a user's existing cart after login.
+   */ const mergeCart = useCallback(async (targetCartID, sourceCartID, sourceSecret)=>{
+        setIsLoading(true);
+        try {
+            const response = await fetch(`${baseAPIURL}/${cartsSlug}/${targetCartID}/merge`, {
+                body: JSON.stringify({
+                    sourceCartID,
+                    sourceSecret
+                }),
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                method: 'POST'
+            });
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Failed to merge carts: ${errorText}`);
+            }
+            const result = await response.json();
+            if (!result.success) {
+                throw new Error(result.message || 'Failed to merge carts');
+            }
+            // Refresh cart with proper depth/populate settings for UI
+            const refreshedCart = await getCart(targetCartID);
+            setCart(refreshedCart);
+            setCartID(targetCartID);
+            return refreshedCart;
+        } catch (error) {
+            if (debug) {
+                // eslint-disable-next-line no-console
+                console.error('Error merging carts:', error);
+            }
+            throw error;
+        } finally{
+            setIsLoading(false);
+        }
+    }, [
+        baseAPIURL,
+        cartsSlug,
+        debug,
+        getCart
+    ]);
+    /**
+   * Called after login to properly set up cart state.
+   * Handles merging guest cart with user's existing cart if applicable.
+   */ const onLogin = useCallback(async ()=>{
+        // Store reference to any existing guest cart before fetching user
+        const guestCartID = cartID;
+        const guestSecret = cartSecret;
+        // Fetch fresh user data
+        const fetchedUser = await getUser();
+        if (!fetchedUser) {
+            // No user means login failed, keep current state
+            return;
+        }
+        // Clear the guest cart secret - authenticated users don't need it
+        setCartSecret(undefined);
+        if (syncLocalStorage) {
+            localStorage.removeItem(`${localStorageConfig.key}_secret`);
+        }
+        // Check if user has an existing cart
+        const userCartID = fetchedUser.cart?.docs && fetchedUser.cart.docs.length > 0 ? typeof fetchedUser.cart.docs[0] === 'object' ? fetchedUser.cart.docs[0].id : fetchedUser.cart.docs[0] : undefined;
+        if (guestCartID && guestSecret) {
+            // Guest had a cart - need to handle merge/transfer
+            if (userCartID) {
+                // User has existing cart - merge guest cart into user's cart
+                try {
+                    await mergeCart(userCartID, guestCartID, guestSecret);
+                } catch (error) {
+                    if (debug) {
+                        // eslint-disable-next-line no-console
+                        console.error('Error merging carts:', error);
+                    }
+                    // Fall back to user's cart
+                    const userCart = await getCart(userCartID);
+                    setCart(userCart);
+                    setCartID(userCartID);
+                }
+            } else {
+                // User has no existing cart - transfer guest cart to user
+                try {
+                    const response = await fetch(`${baseAPIURL}/${cartsSlug}/${guestCartID}?secret=${guestSecret}`, {
+                        body: JSON.stringify({
+                            customer: fetchedUser.id,
+                            secret: null
+                        }),
+                        credentials: 'include',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        method: 'PATCH'
+                    });
+                    if (response.ok) {
+                        // Fetch updated cart
+                        const updatedCart = await getCart(guestCartID);
+                        setCart(updatedCart);
+                        setCartID(guestCartID);
+                    }
+                } catch (error) {
+                    if (debug) {
+                        // eslint-disable-next-line no-console
+                        console.error('Error transferring cart to user:', error);
+                    }
+                }
+            }
+        } else if (userCartID) {
+            // No guest cart, but user has a cart - fetch it
+            const userCart = await getCart(userCartID);
+            setCart(userCart);
+            setCartID(userCartID);
+        }
+        // Update localStorage with user's cart ID (no secret needed)
+        if (syncLocalStorage && cartID) {
+            localStorage.setItem(localStorageConfig.key, cartID);
+        }
+    }, [
+        baseAPIURL,
+        cartID,
+        cartSecret,
+        cartsSlug,
+        debug,
+        getCart,
+        getUser,
+        localStorageConfig.key,
+        mergeCart,
+        syncLocalStorage
+    ]);
     // If localStorage is enabled, restore cart from storage
     useEffect(()=>{
         if (!hasRendered.current) {
@@ -858,22 +1105,30 @@ export const EcommerceProvider = ({ addressesSlug = 'addresses', api, cartsSlug 
             addItem,
             addresses,
             cart,
+            cartID,
             clearCart,
+            clearSession,
+            config,
             confirmOrder,
             createAddress,
-            deleteAddress,
             currenciesConfig,
             currency: selectedCurrency,
             decrementItem,
+            deleteAddress,
             incrementItem,
             initiatePayment,
             isLoading,
+            mergeCart,
+            onLogin,
+            onLogout,
             paymentMethods,
+            refreshCart,
             refreshUser,
             removeItem,
             selectedPaymentMethod,
             setCurrency,
-            updateAddress
+            updateAddress,
+            user
         },
         children: children
     });

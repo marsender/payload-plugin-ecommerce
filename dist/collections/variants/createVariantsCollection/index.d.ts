@@ -15,6 +15,10 @@ type Props = {
      * Slug of the variant options collection, defaults to 'variantOptions'.
      */
     variantOptionsSlug?: string;
+    /**
+     * Slug of the variant types collection, defaults to 'variantTypes'.
+     */
+    variantTypesSlug?: string;
 };
 export declare const createVariantsCollection: (props: Props) => CollectionConfig;
 export {};

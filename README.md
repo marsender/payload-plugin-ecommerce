@@ -41,12 +41,14 @@ export default buildConfig({
 ## Features
 
 - Products & Variants management
-- Shopping Cart
+- Shopping Cart with server-side operations
 - Orders & Transactions
 - Address management
 - Stripe payment integration
 - Stripe Connect support (multi-vendor/marketplace payments)
 - Multi-currency support
+- Guest cart support with automatic merge on login
+- Cart item operations via REST endpoints
 
 ## Stripe Connect (Multi-Vendor Payments)
 
@@ -106,6 +108,71 @@ export default buildConfig({
 - The `connectedAccountId` is stored in the transaction record for reference
 - If no connected account is resolved, the payment goes to the platform account as usual
 
+## Cart Operations
+
+The plugin provides server-side cart operations via REST endpoints for reliable cart manipulation:
+
+### Endpoints
+
+- `POST /api/carts/:id/add-item` - Add an item to the cart
+- `POST /api/carts/:id/update-item` - Update item quantity (supports `{ $inc: n }` for increment/decrement)
+- `POST /api/carts/:id/remove-item` - Remove an item from the cart
+- `POST /api/carts/:id/clear` - Clear all items from the cart
+- `POST /api/carts/:id/merge` - Merge a guest cart into an authenticated user's cart
+
+### Server-Side Functions
+
+You can also use the cart operations directly in your server-side code:
+
+```typescript
+import { addItem, removeItem, updateItem, clearCart, mergeCart } from '@marsender/payload-plugin-ecommerce'
+
+// Add an item
+await addItem({
+  payload,
+  cartsSlug: 'carts',
+  cartID: 'cart-123',
+  item: { product: 'product-id', variant: 'variant-id' },
+  quantity: 2,
+})
+
+// Update quantity (increment by 1)
+await updateItem({
+  payload,
+  cartsSlug: 'carts',
+  cartID: 'cart-123',
+  itemID: 'item-row-id',
+  quantity: { $inc: 1 },
+})
+
+// Merge guest cart into user cart
+await mergeCart({
+  payload,
+  cartsSlug: 'carts',
+  targetCartID: 'user-cart-123',
+  sourceCartID: 'guest-cart-456',
+  sourceSecret: 'guest-cart-secret',
+})
+```
+
+### Custom Cart Item Matcher
+
+You can provide a custom `cartItemMatcher` function to define when cart items should be considered the same (and have their quantities combined):
+
+```typescript
+ecommercePlugin({
+  carts: {
+    cartItemMatcher: ({ existingItem, newItem }) => {
+      // Match by product, variant, AND custom delivery option
+      const productMatch = existingItem.product === newItem.product
+      const variantMatch = existingItem.variant === newItem.variant
+      const deliveryMatch = existingItem.deliveryOption === newItem.deliveryOption
+      return productMatch && variantMatch && deliveryMatch
+    },
+  },
+})
+```
+
 ## Differences from upstream
 
 This fork includes the following enhancements:
@@ -119,6 +186,17 @@ This fork includes the following enhancements:
 - **Stripe Connect support**: Added `resolveConnectedAccount` option to `stripeAdapter()` that enables routing payments to different Stripe Connected Accounts. This is useful for marketplace/multi-vendor scenarios where each seller or coach has their own Stripe account. The connected account ID is stored in the transaction record for reference.
 
 - **Stripe SDK v20 (Clover)**: Upgraded to Stripe Node.js SDK v20 with API version `2025-09-30.clover`. This version uses Stripe's new biannual release train versioning. See [Stripe's versioning policy](https://docs.stripe.com/sdks/versioning) for details.
+
+## What's New in 3.71.0
+
+Synchronized with PayloadCMS plugin-ecommerce v3.71.0:
+
+- **Server-side cart operations**: Cart operations (addItem, removeItem, updateItem, clearCart) now use server-side endpoints for improved reliability and consistency
+- **Cart merge endpoint**: New `/merge` endpoint for merging guest carts into authenticated user carts on login
+- **Custom cart item matcher**: Configure `cartItemMatcher` to define custom item matching logic
+- **`variantTypesSlug` parameter**: Added to `createVariantsCollection` for custom variant type collection slugs
+- **New React provider functions**: `clearSession`, `mergeCart`, `onLogin`, `onLogout`, `refreshCart`, `config`, `user`
+- **Type improvements**: New types `CartItemMatcher`, `CartItemMatcherArgs`, `EcommerceConfig`, `SanitizedAccessConfig`
 
 ## Contributing
 

@@ -1,6 +1,11 @@
-import type { Access, CollectionConfig, DefaultDocumentIDType, Endpoint, Field, FieldAccess, GroupField, PayloadRequest, PopulateType, SelectType, TypedCollection, Where } from 'payload';
+import type { Access, CollectionConfig, CollectionSlug, DefaultDocumentIDType, Endpoint, Field, FieldAccess, GroupField, PayloadRequest, PopulateType, SelectType, TypedCollection, TypedUser, Where } from 'payload';
 import type React from 'react';
+import type { CartItemData as CartItemDataInternal, CartItemMatcher as CartItemMatcherInternal, CartItemMatcherArgs as CartItemMatcherArgsInternal, NewCartItem as NewCartItemInternal } from '../collections/carts/operations/types.js';
 import type { TypedEcommerce } from './utilities.js';
+export type CartItemData = CartItemDataInternal;
+export type CartItemMatcher = CartItemMatcherInternal;
+export type CartItemMatcherArgs = CartItemMatcherArgsInternal;
+export type NewCartItem = NewCartItemInternal;
 export type FieldsOverride = (args: {
     defaultFields: Field[];
 }) => Field[];
@@ -8,7 +13,11 @@ export type CollectionOverride = (args: {
     defaultCollection: CollectionConfig;
 }) => CollectionConfig | Promise<CollectionConfig>;
 export type CartItem = {
-    id: DefaultDocumentIDType;
+    /**
+     * The ID of the cart item row.
+     * Array item IDs are always strings in Payload, regardless of the database adapter's default ID type.
+     */
+    id: string;
     product: DefaultDocumentIDType | TypedCollection['products'];
     quantity: number;
     variant?: DefaultDocumentIDType | TypedCollection['variants'];
@@ -470,6 +479,26 @@ export type CartsConfig = {
      * Defaults to true.
      */
     allowGuestCarts?: boolean;
+    /**
+     * Custom function to determine if two cart items should be considered the same.
+     * When items match, their quantities are combined instead of creating separate entries.
+     *
+     * Use this to add custom uniqueness criteria beyond product and variant IDs.
+     *
+     * @default defaultCartItemMatcher (matches by product and variant ID only)
+     *
+     * @example
+     * ```ts
+     * cartItemMatcher: ({ existingItem, newItem }) => {
+     *   // Match by product, variant, AND custom delivery option
+     *   const productMatch = existingItem.product === newItem.product
+     *   const variantMatch = existingItem.variant === newItem.variant
+     *   const deliveryMatch = existingItem.deliveryOption === newItem.deliveryOption
+     *   return productMatch && variantMatch && deliveryMatch
+     * }
+     * ```
+     */
+    cartItemMatcher?: CartItemMatcher;
     cartsCollectionOverride?: CollectionOverride;
 };
 export type InventoryConfig = {
@@ -589,6 +618,22 @@ export type AccessConfig = {
      * publicAccess: () => true
      */
     publicAccess?: Access;
+};
+/**
+ * Sanitized access config with all optional fields filled in with defaults.
+ */
+export type SanitizedAccessConfig = Required<AccessConfig>;
+/**
+ * Configuration object exposed to the React provider.
+ * Contains essential slugs and API configuration.
+ */
+export type EcommerceConfig = {
+    addressesSlug: CollectionSlug;
+    api: {
+        apiRoute: string;
+    };
+    cartsSlug: CollectionSlug;
+    customersSlug: CollectionSlug;
 };
 export type EcommercePluginConfig = {
     /**
@@ -776,7 +821,7 @@ export type EcommerceContextType<T extends EcommerceCollections = EcommerceColle
     /**
      * The current data of the cart.
      */
-    cart?: T['addresses'];
+    cart?: T['carts'];
     /**
      * The ID of the current cart corresponding to the cart in the database or local storage.
      */
@@ -785,6 +830,15 @@ export type EcommerceContextType<T extends EcommerceCollections = EcommerceColle
      * Clear the cart, removing all items.
      */
     clearCart: () => Promise<void>;
+    /**
+     * Clears all ecommerce session data from state and localStorage.
+     * Used during logout to ensure no user data persists.
+     */
+    clearSession: () => void;
+    /**
+     * Configuration object containing slugs and API settings.
+     */
+    config: EcommerceConfig;
     /**
      * Initiate a payment using the selected payment method.
      * This method should be called after the cart is ready for checkout.
@@ -799,6 +853,7 @@ export type EcommerceContextType<T extends EcommerceCollections = EcommerceColle
     createAddress: (data: Partial<T['addresses']>) => Promise<void>;
     /**
      * Delete an address by its ID.
+     * Note: This is a fork-specific feature not in the original PayloadCMS plugin.
      */
     deleteAddress: (addressID: DefaultDocumentIDType) => Promise<void>;
     /**
@@ -831,7 +886,36 @@ export type EcommerceContextType<T extends EcommerceCollections = EcommerceColle
      * Useful for disabling buttons and preventing race conditions.
      */
     isLoading: boolean;
+    /**
+     * Merges items from a source cart into a target cart.
+     * Useful for merging a guest cart into a user's existing cart after login.
+     *
+     * @param targetCartID - The ID of the cart to merge items into
+     * @param sourceCartID - The ID of the cart to merge items from
+     * @param sourceSecret - The secret for the source cart (required for guest carts)
+     * @returns The merged cart
+     */
+    mergeCart: (targetCartID: DefaultDocumentIDType, sourceCartID: DefaultDocumentIDType, sourceSecret: string) => Promise<T['carts']>;
+    /**
+     * Called after login to properly set up cart state.
+     * Handles merging guest cart with user's existing cart if applicable.
+     */
+    onLogin: () => Promise<void>;
+    /**
+     * Called during logout. Clears all session data.
+     */
+    onLogout: () => void;
     paymentMethods: PaymentAdapterClient[];
+    /**
+     * Refresh the cart data from the server.
+     */
+    refreshCart: () => Promise<void>;
+    /**
+     * Refresh the user state by re-fetching from the API.
+     * Call this after login/logout to sync the EcommerceProvider with the current auth state.
+     * Note: This is a fork-specific feature not in the original PayloadCMS plugin.
+     */
+    refreshUser: () => Promise<void>;
     /**
      * Remove an item from the cart by its index ID.
      */
@@ -842,11 +926,6 @@ export type EcommerceContextType<T extends EcommerceCollections = EcommerceColle
      */
     selectedPaymentMethod?: null | string;
     /**
-     * Refresh the user state by re-fetching from the API.
-     * Call this after login/logout to sync the EcommerceProvider with the current auth state.
-     */
-    refreshUser: () => Promise<void>;
-    /**
      * Change the currency for the cart, it defaults to the configured currency.
      * This will update the currency used for pricing and calculations.
      */
@@ -855,6 +934,10 @@ export type EcommerceContextType<T extends EcommerceCollections = EcommerceColle
      * Update an address by providing the data and the ID.
      */
     updateAddress: (addressID: DefaultDocumentIDType, data: Partial<T['addresses']>) => Promise<void>;
+    /**
+     * The current authenticated user, or null if not logged in.
+     */
+    user: TypedUser | null;
 };
 export {};
 //# sourceMappingURL=index.d.ts.map

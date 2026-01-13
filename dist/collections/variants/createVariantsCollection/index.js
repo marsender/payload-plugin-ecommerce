@@ -3,7 +3,7 @@ import { pricesField } from '../../../fields/pricesField.js';
 import { variantsCollectionBeforeChange as beforeChange } from './hooks/beforeChange.js';
 import { validateOptions } from './hooks/validateOptions.js';
 export const createVariantsCollection = (props)=>{
-    const { access, currenciesConfig, inventory = true, productsSlug = 'products', variantOptionsSlug = 'variantOptions' } = props || {};
+    const { access, currenciesConfig, inventory = true, productsSlug = 'products', variantOptionsSlug = 'variantOptions', variantTypesSlug = 'variantTypes' } = props || {};
     const { supportedCurrencies } = currenciesConfig || {};
     const fields = [
         {
@@ -38,11 +38,17 @@ export const createVariantsCollection = (props)=>{
                     }
                 }
             },
+            custom: {
+                productsSlug,
+                variantTypesSlug
+            },
             hasMany: true,
             label: 'Variant options',
             relationTo: variantOptionsSlug,
             required: true,
-            validate: validateOptions()
+            validate: validateOptions({
+                productsCollectionSlug: productsSlug
+            })
         },
         ...inventory ? [
             inventoryField()

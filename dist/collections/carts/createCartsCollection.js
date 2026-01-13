@@ -3,10 +3,16 @@ import { cartItemsField } from '../../fields/cartItemsField.js';
 import { currencyField } from '../../fields/currencyField.js';
 import { accessOR, conditional } from '../../utilities/accessComposition.js';
 import { beforeChangeCart } from './beforeChange.js';
+import { addItemEndpoint } from './endpoints/addItem.js';
+import { clearCartEndpoint } from './endpoints/clearCart.js';
+import { mergeCartEndpoint } from './endpoints/mergeCart.js';
+import { removeItemEndpoint } from './endpoints/removeItem.js';
+import { updateItemEndpoint } from './endpoints/updateItem.js';
 import { hasCartSecretAccess } from './hasCartSecretAccess.js';
 import { statusBeforeRead } from './statusBeforeRead.js';
 export const createCartsCollection = (props)=>{
-    const { access, allowGuestCarts = false, currenciesConfig, customersSlug = 'users', enableVariants = false, productsSlug = 'products', variantsSlug = 'variants' } = props || {};
+    const { access, allowGuestCarts = false, cartItemMatcher, currenciesConfig, customersSlug = 'users', enableVariants = false, productsSlug = 'products', variantsSlug = 'variants' } = props || {};
+    const cartsSlug = 'carts';
     const fields = [
         cartItemsField({
             enableVariants,
@@ -120,7 +126,7 @@ export const createCartsCollection = (props)=>{
     // Internal access function for guest users (unauthenticated)
     const isGuest = ({ req })=>!req.user;
     const baseConfig = {
-        slug: 'carts',
+        slug: cartsSlug,
         access: {
             create: accessOR(access.isAdmin, access.isAuthenticated, conditional(allowGuestCarts, isGuest)),
             delete: accessOR(access.isAdmin, access.isDocumentOwner, hasCartSecretAccess(allowGuestCarts)),
@@ -133,6 +139,25 @@ export const createCartsCollection = (props)=>{
             group: 'Ecommerce',
             useAsTitle: 'createdAt'
         },
+        endpoints: [
+            addItemEndpoint({
+                cartItemMatcher,
+                cartsSlug
+            }),
+            clearCartEndpoint({
+                cartsSlug
+            }),
+            // mergeCartEndpoint uses its own matcher that handles CartItemData for both items
+            mergeCartEndpoint({
+                cartsSlug
+            }),
+            removeItemEndpoint({
+                cartsSlug
+            }),
+            updateItemEndpoint({
+                cartsSlug
+            })
+        ],
         fields,
         hooks: {
             afterRead: [
