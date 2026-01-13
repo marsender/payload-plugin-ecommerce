@@ -15,7 +15,7 @@
 		"url": "https://github.com/marsender/payload-plugin-ecommerce.git"
 	},
 	"license": "MIT",
-	"author": "Payload <dev@payloadcms.com> (https://payloadcms.com) and Opale-concept <marsender@opale-concept.com> (https://opale-concept.com) for modificaitons",
+	"author": "Payload <dev@payloadcms.com> (https://payloadcms.com) and Opale-concept <marsender@opale-concept.com> (https://opale-concept.com) for modifications",
 	"type": "module",
 	"exports": {
 		".": {
