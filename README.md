@@ -129,29 +129,29 @@ import { addItem, removeItem, updateItem, clearCart, mergeCart } from '@marsende
 
 // Add an item
 await addItem({
-  payload,
-  cartsSlug: 'carts',
-  cartID: 'cart-123',
-  item: { product: 'product-id', variant: 'variant-id' },
-  quantity: 2,
+	payload,
+	cartsSlug: 'carts',
+	cartID: 'cart-123',
+	item: { product: 'product-id', variant: 'variant-id' },
+	quantity: 2,
 })
 
 // Update quantity (increment by 1)
 await updateItem({
-  payload,
-  cartsSlug: 'carts',
-  cartID: 'cart-123',
-  itemID: 'item-row-id',
-  quantity: { $inc: 1 },
+	payload,
+	cartsSlug: 'carts',
+	cartID: 'cart-123',
+	itemID: 'item-row-id',
+	quantity: { $inc: 1 },
 })
 
 // Merge guest cart into user cart
 await mergeCart({
-  payload,
-  cartsSlug: 'carts',
-  targetCartID: 'user-cart-123',
-  sourceCartID: 'guest-cart-456',
-  sourceSecret: 'guest-cart-secret',
+	payload,
+	cartsSlug: 'carts',
+	targetCartID: 'user-cart-123',
+	sourceCartID: 'guest-cart-456',
+	sourceSecret: 'guest-cart-secret',
 })
 ```
 
@@ -161,15 +161,15 @@ You can provide a custom `cartItemMatcher` function to define when cart items sh
 
 ```typescript
 ecommercePlugin({
-  carts: {
-    cartItemMatcher: ({ existingItem, newItem }) => {
-      // Match by product, variant, AND custom delivery option
-      const productMatch = existingItem.product === newItem.product
-      const variantMatch = existingItem.variant === newItem.variant
-      const deliveryMatch = existingItem.deliveryOption === newItem.deliveryOption
-      return productMatch && variantMatch && deliveryMatch
-    },
-  },
+	carts: {
+		cartItemMatcher: ({ existingItem, newItem }) => {
+			// Match by product, variant, AND custom delivery option
+			const productMatch = existingItem.product === newItem.product
+			const variantMatch = existingItem.variant === newItem.variant
+			const deliveryMatch = existingItem.deliveryOption === newItem.deliveryOption
+			return productMatch && variantMatch && deliveryMatch
+		},
+	},
 })
 ```
 
@@ -187,9 +187,9 @@ This fork includes the following enhancements:
 
 - **Stripe SDK v20 (Clover)**: Upgraded to Stripe Node.js SDK v20 with API version `2025-09-30.clover`. This version uses Stripe's new biannual release train versioning. See [Stripe's versioning policy](https://docs.stripe.com/sdks/versioning) for details.
 
-## What's New in 3.71.0
+## What's New in 3.71.1
 
-Synchronized with PayloadCMS plugin-ecommerce v3.71.0:
+Synchronized with PayloadCMS plugin-ecommerce v3.71.1:
 
 - **Server-side cart operations**: Cart operations (addItem, removeItem, updateItem, clearCart) now use server-side endpoints for improved reliability and consistency
 - **Cart merge endpoint**: New `/merge` endpoint for merging guest carts into authenticated user carts on login
