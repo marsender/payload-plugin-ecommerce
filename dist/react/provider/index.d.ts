@@ -1,8 +1,9 @@
 import type { DefaultDocumentIDType } from 'payload';
 import React from 'react';
-import type { AddressesCollection, CartsCollection, ContextProps, Currency, EcommerceContextType } from '../../types/index.js';
+import type { AddressesCollection, CartsCollection, ContextProps, Currency, EcommerceConfig, EcommerceContextType } from '../../types/index.js';
 export declare const EcommerceProvider: React.FC<ContextProps>;
 export declare const useEcommerce: () => EcommerceContextType;
+export declare const useEcommerceConfig: () => EcommerceConfig;
 export declare const useCurrency: () => {
     currency: Currency;
     formatCurrency: (value?: null | number, options?: {

@@ -1257,6 +1257,12 @@ export const useEcommerce = () => {
   return context
 }
 
+export const useEcommerceConfig = () => {
+  const { config } = useEcommerce()
+
+  return config
+}
+
 export const useCurrency = () => {
   const { currenciesConfig, currency, setCurrency } = useEcommerce()
 
