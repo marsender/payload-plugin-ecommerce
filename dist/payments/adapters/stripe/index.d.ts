@@ -83,9 +83,13 @@ export type StripeAdapterClientArgs = {
      */
     apiVersion?: Stripe.StripeConfig['apiVersion'];
     appInfo?: Stripe.StripeConfig['appInfo'];
-    publishableKey: string;
+    /**
+     * @deprecated The publishable key is not used by stripeAdapterClient.
+     * For multi-tenant apps, fetch it dynamically from tenant settings.
+     */
+    publishableKey?: string;
 } & PaymentAdapterClientArgs;
-export declare const stripeAdapterClient: (props: StripeAdapterClientArgs) => PaymentAdapterClient;
+export declare const stripeAdapterClient: (props?: StripeAdapterClientArgs) => PaymentAdapterClient;
 export type InitiatePaymentReturnType = {
     clientSecret: string;
     message: string;

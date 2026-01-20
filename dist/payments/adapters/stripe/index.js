@@ -70,7 +70,7 @@ export const stripeAdapterClient = (props)=>{
         name: 'stripe',
         confirmOrder: true,
         initiatePayment: true,
-        label: 'Card'
+        label: props?.label || 'Card'
     };
 };
 
