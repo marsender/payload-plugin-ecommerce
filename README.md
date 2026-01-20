@@ -44,7 +44,7 @@ export default buildConfig({
 - Shopping Cart with server-side operations
 - Orders & Transactions
 - Address management
-- Stripe payment integration
+- Stripe payment integration for multi-tenant
 - Stripe Connect support (multi-vendor/marketplace payments)
 - Multi-currency support
 - Guest cart support with automatic merge on login

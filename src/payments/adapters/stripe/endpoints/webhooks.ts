@@ -5,65 +5,75 @@ import Stripe from 'stripe'
 import type { StripeAdapterArgs } from '../index.js'
 
 type Props = {
-  apiVersion?: Stripe.StripeConfig['apiVersion']
-  appInfo?: Stripe.StripeConfig['appInfo']
-  secretKey: StripeAdapterArgs['secretKey']
-  webhooks?: StripeAdapterArgs['webhooks']
-  webhookSecret: StripeAdapterArgs['webhookSecret']
+	apiVersion?: Stripe.StripeConfig['apiVersion']
+	appInfo?: Stripe.StripeConfig['appInfo']
+	secretKey: StripeAdapterArgs['secretKey']
+	webhooks?: StripeAdapterArgs['webhooks']
+	webhookSecret: StripeAdapterArgs['webhookSecret']
 }
 
 export const webhooksEndpoint: (props: Props) => Endpoint = (props) => {
-  const { apiVersion, appInfo, secretKey, webhooks, webhookSecret } = props || {}
+	const { apiVersion, appInfo, secretKey, webhooks, webhookSecret } = props || {}
 
-  const handler: Endpoint['handler'] = async (req) => {
-    let returnStatus = 200
+	const handler: Endpoint['handler'] = async (req) => {
+		let returnStatus = 200
 
-    if (webhookSecret && secretKey && req.text) {
-      const stripe = new Stripe(secretKey, {
-        // API version can only be the latest, stripe recommends ts ignoring it
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore - ignoring since possible versions are not type safe, only the latest version is recognised
-        apiVersion: apiVersion || '2025-09-30.clover',
-        appInfo: appInfo || {
-          name: 'Stripe Payload Plugin',
-          url: 'https://payloadcms.com',
-        },
-      })
+		let resolvedSecretKey = secretKey
+		if (typeof secretKey === 'function') {
+			resolvedSecretKey = await secretKey({ req })
+		}
 
-      const body = await req.text()
-      const stripeSignature = req.headers.get('stripe-signature')
+		let resolvedWebhookSecret = webhookSecret
+		if (typeof webhookSecret === 'function') {
+			resolvedWebhookSecret = await webhookSecret({ req })
+		}
 
-      if (stripeSignature) {
-        let event: Stripe.Event | undefined
+		if (resolvedWebhookSecret && resolvedSecretKey && req.text) {
+			const stripe = new Stripe(resolvedSecretKey as string, {
+				// API version can only be the latest, stripe recommends ts ignoring it
+				// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+				// @ts-ignore - ignoring since possible versions are not type safe, only the latest version is recognised
+				apiVersion: apiVersion || '2025-09-30.clover',
+				appInfo: appInfo || {
+					name: 'Stripe Payload Plugin',
+					url: 'https://payloadcms.com',
+				},
+			})
 
-        try {
-          event = stripe.webhooks.constructEvent(body, stripeSignature, webhookSecret)
-        } catch (err: unknown) {
-          const msg: string = err instanceof Error ? err.message : JSON.stringify(err)
-          req.payload.logger.error(`Error constructing Stripe event: ${msg}`)
-          returnStatus = 400
-        }
+			const body = await req.text()
+			const stripeSignature = req.headers.get('stripe-signature')
 
-        if (typeof webhooks === 'object' && event) {
-          const webhookEventHandler = webhooks[event.type]
+			if (stripeSignature) {
+				let event: Stripe.Event | undefined
 
-          if (typeof webhookEventHandler === 'function') {
-            await webhookEventHandler({
-              event,
-              req,
-              stripe,
-            })
-          }
-        }
-      }
-    }
+				try {
+					event = stripe.webhooks.constructEvent(body, stripeSignature, resolvedWebhookSecret as string)
+				} catch (err: unknown) {
+					const msg: string = err instanceof Error ? err.message : JSON.stringify(err)
+					req.payload.logger.error(`Error constructing Stripe event: ${msg}`)
+					returnStatus = 400
+				}
 
-    return Response.json({ received: true }, { status: returnStatus })
-  }
+				if (typeof webhooks === 'object' && event) {
+					const webhookEventHandler = webhooks[event.type]
 
-  return {
-    handler,
-    method: 'post',
-    path: '/webhooks',
-  }
+					if (typeof webhookEventHandler === 'function') {
+						await webhookEventHandler({
+							event,
+							req,
+							stripe,
+						})
+					}
+				}
+			}
+		}
+
+		return Response.json({ received: true }, { status: returnStatus })
+	}
+
+	return {
+		handler,
+		method: 'post',
+		path: '/webhooks',
+	}
 }

@@ -3,8 +3,20 @@ export const webhooksEndpoint = (props)=>{
     const { apiVersion, appInfo, secretKey, webhooks, webhookSecret } = props || {};
     const handler = async (req)=>{
         let returnStatus = 200;
-        if (webhookSecret && secretKey && req.text) {
-            const stripe = new Stripe(secretKey, {
+        let resolvedSecretKey = secretKey;
+        if (typeof secretKey === 'function') {
+            resolvedSecretKey = await secretKey({
+                req
+            });
+        }
+        let resolvedWebhookSecret = webhookSecret;
+        if (typeof webhookSecret === 'function') {
+            resolvedWebhookSecret = await webhookSecret({
+                req
+            });
+        }
+        if (resolvedWebhookSecret && resolvedSecretKey && req.text) {
+            const stripe = new Stripe(resolvedSecretKey, {
                 // API version can only be the latest, stripe recommends ts ignoring it
                 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                 // @ts-ignore - ignoring since possible versions are not type safe, only the latest version is recognised
@@ -19,7 +31,7 @@ export const webhooksEndpoint = (props)=>{
             if (stripeSignature) {
                 let event;
                 try {
-                    event = stripe.webhooks.constructEvent(body, stripeSignature, webhookSecret);
+                    event = stripe.webhooks.constructEvent(body, stripeSignature, resolvedWebhookSecret);
                 } catch (err) {
                     const msg = err instanceof Error ? err.message : JSON.stringify(err);
                     req.payload.logger.error(`Error constructing Stripe event: ${msg}`);

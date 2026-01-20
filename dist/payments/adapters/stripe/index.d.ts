@@ -25,6 +25,9 @@ export type ResolveConnectedAccountArgs = {
  * Should return the connected account ID (e.g., 'acct_1234xyz') or undefined if no connected account should be used.
  */
 export type ResolveConnectedAccountFn = (args: ResolveConnectedAccountArgs) => Promise<string | undefined> | string | undefined;
+export type StripeKeyResolver = (args: {
+    req: PayloadRequest;
+}) => Promise<string> | string;
 export type StripeAdapterArgs = {
     /**
      * This library's types only reflect the latest API version.
@@ -40,10 +43,10 @@ export type StripeAdapterArgs = {
      */
     apiVersion?: Stripe.StripeConfig['apiVersion'];
     appInfo?: Stripe.StripeConfig['appInfo'];
-    publishableKey: string;
-    secretKey: string;
+    publishableKey: string | StripeKeyResolver;
+    secretKey: string | StripeKeyResolver;
     webhooks?: StripeWebhookHandlers;
-    webhookSecret?: string;
+    webhookSecret?: string | StripeKeyResolver;
     /**
      * Optional function to resolve the Stripe Connect account ID from the cart.
      * When provided, payments will be routed to the connected account using `transfer_data`.

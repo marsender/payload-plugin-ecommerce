@@ -8,7 +8,13 @@ export const initiatePayment = (props)=>async ({ data, req, transactionsSlug })=
         const amount = cart.subtotal;
         const billingAddressFromData = data.billingAddress;
         const shippingAddressFromData = data.shippingAddress;
-        if (!secretKey) {
+        let resolvedSecretKey = secretKey;
+        if (typeof secretKey === 'function') {
+            resolvedSecretKey = await secretKey({
+                req
+            });
+        }
+        if (!resolvedSecretKey) {
             throw new Error('Stripe secret key is required.');
         }
         if (!currency) {
@@ -23,7 +29,7 @@ export const initiatePayment = (props)=>async ({ data, req, transactionsSlug })=
         if (!amount || typeof amount !== 'number' || amount <= 0) {
             throw new Error('A valid amount is required to initiate a payment.');
         }
-        const stripe = new Stripe(secretKey, {
+        const stripe = new Stripe(resolvedSecretKey, {
             // API version can only be the latest, stripe recommends ts ignoring it
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore - ignoring since possible versions are not type safe, only the latest version is recognised
