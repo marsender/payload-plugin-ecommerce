@@ -546,6 +546,22 @@ export type CartsConfig = {
    */
   cartItemMatcher?: CartItemMatcher
   cartsCollectionOverride?: CollectionOverride
+  /**
+   * Multi-tenant configuration for carts.
+   * When enabled, carts will have a tenant field and access will be scoped by tenant for admins.
+   * Guest access via secret is still supported.
+   */
+  multiTenant?: {
+    /**
+     * Whether multi-tenant support is enabled.
+     */
+    enabled: boolean
+    /**
+     * The slug of the tenants collection.
+     * @default 'tenants'
+     */
+    tenantsSlug?: string
+  }
 }
 
 export type InventoryConfig = {

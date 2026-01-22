@@ -169,6 +169,7 @@ export const ecommercePlugin =
           currenciesConfig,
           customersSlug: collectionSlugMap.customers,
           enableVariants: Boolean(productsConfig.variants),
+          multiTenant: cartsConfig.multiTenant,
           productsSlug: collectionSlugMap.products,
           variantsSlug: collectionSlugMap.variants,
         })

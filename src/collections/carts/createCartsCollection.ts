@@ -8,12 +8,14 @@ import { cartItemsField } from '../../fields/cartItemsField.js'
 import { currencyField } from '../../fields/currencyField.js'
 import { accessOR, conditional } from '../../utilities/accessComposition.js'
 import { beforeChangeCart } from './beforeChange.js'
+import { hasTenantAccess } from './cartTenantAccess.js'
 import { addItemEndpoint } from './endpoints/addItem.js'
 import { clearCartEndpoint } from './endpoints/clearCart.js'
 import { mergeCartEndpoint } from './endpoints/mergeCart.js'
 import { removeItemEndpoint } from './endpoints/removeItem.js'
 import { updateItemEndpoint } from './endpoints/updateItem.js'
 import { hasCartSecretAccess } from './hasCartSecretAccess.js'
+import { populateTenant } from './populateTenant.js'
 import { statusBeforeRead } from './statusBeforeRead.js'
 
 type Props = {
@@ -54,6 +56,22 @@ type Props = {
    */
   enableVariants?: boolean
   /**
+   * Multi-tenant configuration for carts.
+   * When enabled, carts will have a tenant field and access will be scoped by tenant for admins.
+   * Guest access via secret is still supported.
+   */
+  multiTenant?: {
+    /**
+     * Whether multi-tenant support is enabled.
+     */
+    enabled: boolean
+    /**
+     * The slug of the tenants collection.
+     * @default 'tenants'
+     */
+    tenantsSlug?: string
+  }
+  /**
    * Slug of the products collection, defaults to 'products'.
    */
   productsSlug?: string
@@ -71,13 +89,37 @@ export const createCartsCollection: (props: Props) => CollectionConfig = (props)
     currenciesConfig,
     customersSlug = 'users',
     enableVariants = false,
+    multiTenant,
     productsSlug = 'products',
     variantsSlug = 'variants',
   } = props || {}
 
+  const tenantsSlug = multiTenant?.tenantsSlug || 'tenants'
+
   const cartsSlug = 'carts'
 
   const fields: Field[] = [
+    // Tenant field (only added when multiTenant is enabled)
+    ...(multiTenant?.enabled
+      ? [
+          {
+            name: 'tenant',
+            type: 'relationship',
+            relationTo: tenantsSlug,
+            // Not required - guests create carts without tenant initially
+            required: false,
+            index: true,
+            admin: {
+              position: 'sidebar',
+              // Read-only for everyone - populated automatically by hook
+              readOnly: true,
+            },
+            label: ({ t }) =>
+              // @ts-expect-error - translations are not typed in plugins yet
+              t('plugin-ecommerce:tenant') || 'Tenant',
+          } as Field,
+        ]
+      : []),
     cartItemsField({
       enableVariants,
       overrides: {
@@ -196,6 +238,11 @@ export const createCartsCollection: (props: Props) => CollectionConfig = (props)
   // Internal access function for guest users (unauthenticated)
   const isGuest: Access = ({ req }) => !req.user
 
+  // Admin access: when multiTenant is enabled, use tenant-scoped access; otherwise use isAdmin
+  const adminAccess = multiTenant?.enabled
+    ? hasTenantAccess({ isAdmin: access.isAdmin })
+    : access.isAdmin
+
   const baseConfig: CollectionConfig = {
     slug: cartsSlug,
     access: {
@@ -204,17 +251,9 @@ export const createCartsCollection: (props: Props) => CollectionConfig = (props)
         access.isAuthenticated,
         conditional(allowGuestCarts, isGuest),
       ),
-      delete: accessOR(
-        access.isAdmin,
-        access.isDocumentOwner,
-        hasCartSecretAccess(allowGuestCarts),
-      ),
-      read: accessOR(access.isAdmin, access.isDocumentOwner, hasCartSecretAccess(allowGuestCarts)),
-      update: accessOR(
-        access.isAdmin,
-        access.isDocumentOwner,
-        hasCartSecretAccess(allowGuestCarts),
-      ),
+      delete: accessOR(adminAccess, access.isDocumentOwner, hasCartSecretAccess(allowGuestCarts)),
+      read: accessOR(adminAccess, access.isDocumentOwner, hasCartSecretAccess(allowGuestCarts)),
+      update: accessOR(adminAccess, access.isDocumentOwner, hasCartSecretAccess(allowGuestCarts)),
     },
     admin: {
       description: ({ t }) =>
@@ -244,6 +283,8 @@ export const createCartsCollection: (props: Props) => CollectionConfig = (props)
         },
       ],
       beforeChange: [
+        // Populate tenant from cookies when multiTenant is enabled
+        ...(multiTenant?.enabled ? [populateTenant({ tenantsSlug })] : []),
         // This hook can be used to update the subtotal before saving the cart
         beforeChangeCart({ productsSlug, variantsSlug }),
       ],
