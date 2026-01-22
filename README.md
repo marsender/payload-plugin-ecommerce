@@ -194,11 +194,11 @@ ecommercePlugin({
 
 #### How it works
 
-1. **Tenant field**: A `tenant` relationship field is added to the carts collection (optional, not required)
-2. **Auto-population**: The `populateTenant` hook automatically sets the tenant from `payload-tenant` or `payload-tenant-domain` cookies on cart creation
+1. **Tenant field**: A `tenant` relationship field is added to the carts collection (required)
+2. **Auto-population**: The `populateTenant` hook automatically sets the tenant from `payload-tenant` or `payload-tenant-domain` cookies on cart creation. If no valid tenant can be determined, cart creation fails with an error.
 3. **Access control**: The `hasTenantAccess` function provides tenant-scoped access for admins:
    - **Super-admins**: Full access to all carts
-   - **Tenant-admins**: See carts from their tenant(s) plus orphaned carts (no tenant)
+   - **Tenant-admins**: See carts only from their tenant(s)
    - **Regular users**: Access only their own carts (via `isDocumentOwner`)
    - **Guests**: Access via secret token (unchanged behavior)
 

@@ -46,6 +46,7 @@ type Props = {
  * For non-admins:
  * - Returns false (other access rules like isDocumentOwner or hasCartSecretAccess handle them)
  *
+ * Note: All carts must have a tenant (enforced by populateTenant hook).
  * This is designed to be combined with other access functions using accessOR.
  */
 export const hasTenantAccess = ({
@@ -108,15 +109,14 @@ export const hasTenantAccess = ({
         const selectedTenantId = Number(selectedTenant) || selectedTenant
         if (adminTenantIds.includes(selectedTenantId)) {
           return {
-            or: [{ tenant: { equals: selectedTenantId } }, { tenant: { exists: false } }],
+            tenant: { equals: selectedTenantId },
           } as Where
         }
       }
 
       // Return Where clause filtering by user's admin tenants
-      // Include carts with no tenant (orphaned/guest carts before tenant was set)
       return {
-        or: [{ tenant: { in: adminTenantIds } }, { tenant: { exists: false } }],
+        tenant: { in: adminTenantIds },
       } as Where
     }
 
@@ -142,7 +142,7 @@ export const hasTenantAccess = ({
 
       if (allTenantIds.length > 0) {
         return {
-          or: [{ tenant: { in: allTenantIds } }, { tenant: { exists: false } }],
+          tenant: { in: allTenantIds },
         } as Where
       }
 

@@ -1,6 +1,6 @@
 import type { CollectionBeforeChangeHook } from 'payload'
 
-import { parseCookies } from 'payload'
+import { APIError, parseCookies } from 'payload'
 
 type Props = {
   tenantsSlug: string
@@ -13,6 +13,7 @@ type Props = {
  * - Admin panel operations (via payload-tenant cookie)
  *
  * The hook only runs on create operations and only if tenant is not already set.
+ * Throws an error if no valid tenant can be determined - all carts must belong to a tenant.
  */
 export const populateTenant: (props: Props) => CollectionBeforeChangeHook =
   ({ tenantsSlug }) =>
@@ -52,8 +53,14 @@ export const populateTenant: (props: Props) => CollectionBeforeChangeHook =
 
       if (tenants.docs.length > 0) {
         data.tenant = tenants.docs[0].id
+        return data
       }
     }
 
-    return data
+    // No valid tenant found - throw error
+    // All carts must belong to a tenant for proper isolation
+    throw new APIError(
+      'Cannot create cart without a valid tenant. Ensure payload-tenant or payload-tenant-domain cookie is set.',
+      400,
+    )
   }

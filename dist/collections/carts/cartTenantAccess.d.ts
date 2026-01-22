@@ -42,6 +42,7 @@ type Props = {
  * For non-admins:
  * - Returns false (other access rules like isDocumentOwner or hasCartSecretAccess handle them)
  *
+ * Note: All carts must have a tenant (enforced by populateTenant hook).
  * This is designed to be combined with other access functions using accessOR.
  */
 export declare const hasTenantAccess: ({ isAdmin, tenantsArrayFieldName, tenantsArrayTenantFieldName, tenantsArrayRolesFieldName, superAdminRoles, tenantAdminRoles, }: Props) => Access;

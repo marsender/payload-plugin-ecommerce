@@ -10,6 +10,7 @@ import { parseCookies } from 'payload';
  * For non-admins:
  * - Returns false (other access rules like isDocumentOwner or hasCartSecretAccess handle them)
  *
+ * Note: All carts must have a tenant (enforced by populateTenant hook).
  * This is designed to be combined with other access functions using accessOR.
  */ export const hasTenantAccess = ({ isAdmin, tenantsArrayFieldName = 'tenants', tenantsArrayTenantFieldName = 'tenant', tenantsArrayRolesFieldName = 'roles', superAdminRoles = [
     'super-admin'
@@ -55,36 +56,17 @@ import { parseCookies } from 'payload';
                 const selectedTenantId = Number(selectedTenant) || selectedTenant;
                 if (adminTenantIds.includes(selectedTenantId)) {
                     return {
-                        or: [
-                            {
-                                tenant: {
-                                    equals: selectedTenantId
-                                }
-                            },
-                            {
-                                tenant: {
-                                    exists: false
-                                }
-                            }
-                        ]
+                        tenant: {
+                            equals: selectedTenantId
+                        }
                     };
                 }
             }
             // Return Where clause filtering by user's admin tenants
-            // Include carts with no tenant (orphaned/guest carts before tenant was set)
             return {
-                or: [
-                    {
-                        tenant: {
-                            in: adminTenantIds
-                        }
-                    },
-                    {
-                        tenant: {
-                            exists: false
-                        }
-                    }
-                ]
+                tenant: {
+                    in: adminTenantIds
+                }
             };
         }
         // Fallback: check if user is global admin via the provided isAdmin function
@@ -107,18 +89,9 @@ import { parseCookies } from 'payload';
             }
             if (allTenantIds.length > 0) {
                 return {
-                    or: [
-                        {
-                            tenant: {
-                                in: allTenantIds
-                            }
-                        },
-                        {
-                            tenant: {
-                                exists: false
-                            }
-                        }
-                    ]
+                    tenant: {
+                        in: allTenantIds
+                    }
                 };
             }
             // Global admin with no tenant memberships - return true for full access
