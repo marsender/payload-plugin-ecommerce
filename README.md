@@ -49,6 +49,7 @@ export default buildConfig({
 - Multi-currency support
 - Guest cart support with automatic merge on login
 - Cart item operations via REST endpoints
+- Multi-tenant cart support (tenant isolation with guest access)
 
 ## Stripe Connect (Multi-Vendor Payments)
 
@@ -173,6 +174,44 @@ ecommercePlugin({
 })
 ```
 
+### Multi-Tenant Cart Support
+
+For multi-tenant applications, you can enable tenant isolation for carts while still supporting guest cart access:
+
+```typescript
+ecommercePlugin({
+	carts: {
+		allowGuestCarts: true,
+		multiTenant: {
+			enabled: true,
+			tenantsSlug: 'tenants', // default
+		},
+	},
+})
+```
+
+**Important:** When using multi-tenant carts, do NOT add `carts` to the `@payloadcms/plugin-multi-tenant` collections list. The ecommerce plugin handles tenant isolation internally to support both guest and tenant-scoped access.
+
+#### How it works
+
+1. **Tenant field**: A `tenant` relationship field is added to the carts collection (optional, not required)
+2. **Auto-population**: The `populateTenant` hook automatically sets the tenant from `payload-tenant` or `payload-tenant-domain` cookies on cart creation
+3. **Access control**: The `hasTenantAccess` function provides tenant-scoped access for admins:
+   - **Super-admins**: Full access to all carts
+   - **Tenant-admins**: See carts from their tenant(s) plus orphaned carts (no tenant)
+   - **Regular users**: Access only their own carts (via `isDocumentOwner`)
+   - **Guests**: Access via secret token (unchanged behavior)
+
+#### Access Control Truth Table
+
+| User Type | Has Secret | Result |
+|-----------|------------|--------|
+| Guest (no auth) | Yes | Access via secret match |
+| Guest (no auth) | No | No access |
+| Authenticated | Any | Access own carts (customer = user.id) |
+| Tenant Admin | Any | All carts for their tenant(s) |
+| Super Admin | Any | All carts (full access) |
+
 ## Differences from upstream
 
 This fork includes the following enhancements:
@@ -186,6 +225,8 @@ This fork includes the following enhancements:
 - **Stripe Connect support**: Added `resolveConnectedAccount` option to `stripeAdapter()` that enables routing payments to different Stripe Connected Accounts. This is useful for marketplace/multi-vendor scenarios where each seller or coach has their own Stripe account. The connected account ID is stored in the transaction record for reference.
 
 - **Stripe SDK v20 (Clover)**: Upgraded to Stripe Node.js SDK v20 with API version `2025-09-30.clover`. This version uses Stripe's new biannual release train versioning. See [Stripe's versioning policy](https://docs.stripe.com/sdks/versioning) for details.
+
+- **Multi-tenant cart support**: Added `multiTenant` option to carts configuration. When enabled, carts have a `tenant` field that is auto-populated from cookies, and admin access is scoped by tenant. This allows tenant isolation in the admin panel while still supporting guest cart access via secret tokens. Use this instead of adding carts to the multi-tenant plugin's collections list.
 
 ## What's New in 3.71.1
 
