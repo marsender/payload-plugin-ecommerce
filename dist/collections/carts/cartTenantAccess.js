@@ -4,14 +4,17 @@ import { parseCookies } from 'payload';
  *
  * For admins:
  * - Super-admins see all carts
- * - Tenant-admins see carts from their tenants OR carts without tenant
+ * - Global admins see all carts for their tenants
+ * - Tenant-admins see carts from tenants where they have admin role
  *
  * For non-admins:
  * - Returns false (other access rules like isDocumentOwner or hasCartSecretAccess handle them)
  *
  * This is designed to be combined with other access functions using accessOR.
- */ export const hasTenantAccess = ({ isAdmin, tenantsArrayFieldName = 'tenants', tenantsArrayTenantFieldName = 'tenant', superAdminRoles = [
+ */ export const hasTenantAccess = ({ isAdmin, tenantsArrayFieldName = 'tenants', tenantsArrayTenantFieldName = 'tenant', tenantsArrayRolesFieldName = 'roles', superAdminRoles = [
     'super-admin'
+], tenantAdminRoles = [
+    'tenant-admin'
 ] })=>{
     return async ({ req })=>{
         const { user } = req;
@@ -19,48 +22,95 @@ import { parseCookies } from 'payload';
         if (!user) {
             return false;
         }
-        // Check super-admin FIRST (before isAdmin check)
+        // Check super-admin FIRST (before other checks)
         // Super-admin: full access (returns true to bypass any Where constraints)
         const roles = user.roles;
         if (roles?.some((role)=>superAdminRoles.includes(role))) {
             return true;
         }
-        // Then check if user is admin via the provided isAdmin function
-        const adminResult = await isAdmin({
-            req
-        });
-        if (!adminResult) {
-            return false;
-        }
-        // Get user's tenant IDs from their tenants array
-        const userTenantIds = [];
+        // Get user's tenant memberships and check for tenant-admin roles
+        const adminTenantIds = [];
         const tenantsArray = user[tenantsArrayFieldName];
         if (Array.isArray(tenantsArray)) {
             for (const membership of tenantsArray){
                 const tenantValue = membership[tenantsArrayTenantFieldName];
-                if (tenantValue) {
+                const membershipRoles = membership[tenantsArrayRolesFieldName];
+                // Check if user has tenant-admin role in this membership
+                const hasTenantAdminRole = membershipRoles?.some((role)=>tenantAdminRoles.includes(role));
+                if (tenantValue && hasTenantAdminRole) {
                     const tenantId = typeof tenantValue === 'object' && tenantValue !== null && 'id' in tenantValue ? tenantValue.id : tenantValue;
                     if (tenantId) {
-                        userTenantIds.push(tenantId);
+                        adminTenantIds.push(tenantId);
                     }
                 }
             }
         }
-        if (userTenantIds.length === 0) {
-            return false;
+        // If user has tenant-admin role in any tenant, grant access to those tenants
+        if (adminTenantIds.length > 0) {
+            // Check if there's a selected tenant in cookies (admin panel context)
+            const cookies = parseCookies(req.headers);
+            const selectedTenant = cookies.get('payload-tenant');
+            // If admin has selected a specific tenant, filter to that tenant
+            if (selectedTenant) {
+                const selectedTenantId = Number(selectedTenant) || selectedTenant;
+                if (adminTenantIds.includes(selectedTenantId)) {
+                    return {
+                        or: [
+                            {
+                                tenant: {
+                                    equals: selectedTenantId
+                                }
+                            },
+                            {
+                                tenant: {
+                                    exists: false
+                                }
+                            }
+                        ]
+                    };
+                }
+            }
+            // Return Where clause filtering by user's admin tenants
+            // Include carts with no tenant (orphaned/guest carts before tenant was set)
+            return {
+                or: [
+                    {
+                        tenant: {
+                            in: adminTenantIds
+                        }
+                    },
+                    {
+                        tenant: {
+                            exists: false
+                        }
+                    }
+                ]
+            };
         }
-        // Check if there's a selected tenant in cookies (admin panel context)
-        const cookies = parseCookies(req.headers);
-        const selectedTenant = cookies.get('payload-tenant');
-        // If admin has selected a specific tenant, filter to that tenant
-        if (selectedTenant) {
-            const selectedTenantId = Number(selectedTenant) || selectedTenant;
-            if (userTenantIds.includes(selectedTenantId)) {
+        // Fallback: check if user is global admin via the provided isAdmin function
+        const adminResult = await isAdmin({
+            req
+        });
+        if (adminResult) {
+            // Global admin but no tenant memberships - get all tenants from their array
+            const allTenantIds = [];
+            if (Array.isArray(tenantsArray)) {
+                for (const membership of tenantsArray){
+                    const tenantValue = membership[tenantsArrayTenantFieldName];
+                    if (tenantValue) {
+                        const tenantId = typeof tenantValue === 'object' && tenantValue !== null && 'id' in tenantValue ? tenantValue.id : tenantValue;
+                        if (tenantId) {
+                            allTenantIds.push(tenantId);
+                        }
+                    }
+                }
+            }
+            if (allTenantIds.length > 0) {
                 return {
                     or: [
                         {
                             tenant: {
-                                equals: selectedTenantId
+                                in: allTenantIds
                             }
                         },
                         {
@@ -71,23 +121,11 @@ import { parseCookies } from 'payload';
                     ]
                 };
             }
+            // Global admin with no tenant memberships - return true for full access
+            return true;
         }
-        // Return Where clause filtering by user's tenants
-        // Include carts with no tenant (orphaned/guest carts before tenant was set)
-        return {
-            or: [
-                {
-                    tenant: {
-                        in: userTenantIds
-                    }
-                },
-                {
-                    tenant: {
-                        exists: false
-                    }
-                }
-            ]
-        };
+        // Not an admin of any kind
+        return false;
     };
 };
 
