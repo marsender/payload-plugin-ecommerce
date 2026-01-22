@@ -50,16 +50,17 @@ export const hasTenantAccess = ({
       return false
     }
 
-    // First check if user is admin at all
-    const adminResult = await isAdmin({ req } as Parameters<Access>[0])
-    if (!adminResult) {
-      return false
-    }
-
+    // Check super-admin FIRST (before isAdmin check)
     // Super-admin: full access (returns true to bypass any Where constraints)
     const roles = user.roles as string[] | undefined
     if (roles?.some((role) => superAdminRoles.includes(role))) {
       return true
+    }
+
+    // Then check if user is admin via the provided isAdmin function
+    const adminResult = await isAdmin({ req } as Parameters<Access>[0])
+    if (!adminResult) {
+      return false
     }
 
     // Get user's tenant IDs from their tenants array

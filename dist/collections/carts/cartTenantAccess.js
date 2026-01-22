@@ -19,17 +19,18 @@ import { parseCookies } from 'payload';
         if (!user) {
             return false;
         }
-        // First check if user is admin at all
+        // Check super-admin FIRST (before isAdmin check)
+        // Super-admin: full access (returns true to bypass any Where constraints)
+        const roles = user.roles;
+        if (roles?.some((role)=>superAdminRoles.includes(role))) {
+            return true;
+        }
+        // Then check if user is admin via the provided isAdmin function
         const adminResult = await isAdmin({
             req
         });
         if (!adminResult) {
             return false;
-        }
-        // Super-admin: full access (returns true to bypass any Where constraints)
-        const roles = user.roles;
-        if (roles?.some((role)=>superAdminRoles.includes(role))) {
-            return true;
         }
         // Get user's tenant IDs from their tenants array
         const userTenantIds = [];
