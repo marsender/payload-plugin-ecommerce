@@ -12,6 +12,7 @@ import { updateItemEndpoint } from './endpoints/updateItem.js';
 import { hasCartSecretAccess } from './hasCartSecretAccess.js';
 import { populateTenant } from './populateTenant.js';
 import { statusBeforeRead } from './statusBeforeRead.js';
+import { tenantBaseListFilter } from './tenantBaseListFilter.js';
 export const createCartsCollection = (props)=>{
     const { access, allowGuestCarts = false, cartItemMatcher, currenciesConfig, customersSlug = 'users', enableVariants = false, multiTenant, productsSlug = 'products', variantsSlug = 'variants' } = props || {};
     const tenantsSlug = multiTenant?.tenantsSlug || 'tenants';
@@ -162,7 +163,11 @@ export const createCartsCollection = (props)=>{
             description: ({ t })=>// @ts-expect-error - translations are not typed in plugins yet
                 t('plugin-ecommerce:cartsCollectionDescription'),
             group: 'Ecommerce',
-            useAsTitle: 'createdAt'
+            useAsTitle: 'createdAt',
+            // Filter list view by tenant when multiTenant is enabled
+            ...multiTenant?.enabled && {
+                baseListFilter: tenantBaseListFilter()
+            }
         },
         endpoints: [
             addItemEndpoint({

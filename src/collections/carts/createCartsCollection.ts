@@ -17,6 +17,7 @@ import { updateItemEndpoint } from './endpoints/updateItem.js'
 import { hasCartSecretAccess } from './hasCartSecretAccess.js'
 import { populateTenant } from './populateTenant.js'
 import { statusBeforeRead } from './statusBeforeRead.js'
+import { tenantBaseListFilter } from './tenantBaseListFilter.js'
 
 type Props = {
   access: Pick<Required<AccessConfig>, 'isAdmin' | 'isAuthenticated' | 'isDocumentOwner'>
@@ -261,6 +262,10 @@ export const createCartsCollection: (props: Props) => CollectionConfig = (props)
         t('plugin-ecommerce:cartsCollectionDescription'),
       group: 'Ecommerce',
       useAsTitle: 'createdAt',
+      // Filter list view by tenant when multiTenant is enabled
+      ...(multiTenant?.enabled && {
+        baseListFilter: tenantBaseListFilter(),
+      }),
     },
     endpoints: [
       addItemEndpoint({ cartItemMatcher, cartsSlug }),
