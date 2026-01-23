@@ -23,10 +23,22 @@ import { parseCookies } from 'payload';
                 }
             };
         }
+        // Check for selected tenant in cookies (admin panel context)
+        const cookies = parseCookies(req.headers);
+        const selectedTenant = cookies.get('payload-tenant');
+        const selectedTenantId = selectedTenant ? Number(selectedTenant) || selectedTenant : null;
         // Check super-admin FIRST (before other checks)
         const roles = user.roles;
         if (roles?.some((role)=>superAdminRoles.includes(role))) {
-            return {} // No filter - see all
+            // Super-admins: filter by selected tenant if one is chosen
+            if (selectedTenantId) {
+                return {
+                    tenant: {
+                        equals: selectedTenantId
+                    }
+                };
+            }
+            return {} // No tenant selected - see all
             ;
         }
         // Get user's tenant memberships and check for tenant-admin roles
@@ -48,19 +60,13 @@ import { parseCookies } from 'payload';
         }
         // If user has tenant-admin role in any tenant, filter to those tenants
         if (adminTenantIds.length > 0) {
-            // Check if there's a selected tenant in cookies (admin panel context)
-            const cookies = parseCookies(req.headers);
-            const selectedTenant = cookies.get('payload-tenant');
-            // If admin has selected a specific tenant, filter to that tenant
-            if (selectedTenant) {
-                const selectedTenantId = Number(selectedTenant) || selectedTenant;
-                if (adminTenantIds.includes(selectedTenantId)) {
-                    return {
-                        tenant: {
-                            equals: selectedTenantId
-                        }
-                    };
-                }
+            // If admin has selected a specific tenant they have access to, filter to that tenant
+            if (selectedTenantId && adminTenantIds.includes(selectedTenantId)) {
+                return {
+                    tenant: {
+                        equals: selectedTenantId
+                    }
+                };
             }
             // Return filter for user's admin tenants
             return {
