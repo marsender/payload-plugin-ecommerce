@@ -29,15 +29,19 @@ export const populateTenant: (props: Props) => CollectionBeforeChangeHook =
     const tenantIdFromCookie = cookies.get('payload-tenant')
 
     if (tenantIdFromCookie) {
-      // Validate the tenant exists
-      const tenantExists = await req.payload.count({
-        collection: tenantsSlug,
-        where: { id: { equals: tenantIdFromCookie } },
-      })
+      // Parse tenant ID - could be string from cookie, convert to number for PostgreSQL
+      const parsedTenantId = parseInt(tenantIdFromCookie, 10)
+      if (!Number.isNaN(parsedTenantId)) {
+        // Validate the tenant exists
+        const tenantExists = await req.payload.count({
+          collection: tenantsSlug,
+          where: { id: { equals: parsedTenantId } },
+        })
 
-      if (tenantExists.totalDocs > 0) {
-        data.tenant = tenantIdFromCookie
-        return data
+        if (tenantExists.totalDocs > 0) {
+          data.tenant = parsedTenantId
+          return data
+        }
       }
     }
 

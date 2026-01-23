@@ -16,18 +16,22 @@ import { APIError, parseCookies } from 'payload';
         // Try to get tenant from payload-tenant cookie (admin panel / plugin standard)
         const tenantIdFromCookie = cookies.get('payload-tenant');
         if (tenantIdFromCookie) {
-            // Validate the tenant exists
-            const tenantExists = await req.payload.count({
-                collection: tenantsSlug,
-                where: {
-                    id: {
-                        equals: tenantIdFromCookie
+            // Parse tenant ID - could be string from cookie, convert to number for PostgreSQL
+            const parsedTenantId = parseInt(tenantIdFromCookie, 10);
+            if (!Number.isNaN(parsedTenantId)) {
+                // Validate the tenant exists
+                const tenantExists = await req.payload.count({
+                    collection: tenantsSlug,
+                    where: {
+                        id: {
+                            equals: parsedTenantId
+                        }
                     }
+                });
+                if (tenantExists.totalDocs > 0) {
+                    data.tenant = parsedTenantId;
+                    return data;
                 }
-            });
-            if (tenantExists.totalDocs > 0) {
-                data.tenant = tenantIdFromCookie;
-                return data;
             }
         }
         // Try to get tenant from payload-tenant-domain cookie (frontend domain-based)
