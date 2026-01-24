@@ -6,6 +6,7 @@ import { amountField } from '../../fields/amountField.js'
 import { cartItemsField } from '../../fields/cartItemsField.js'
 import { currencyField } from '../../fields/currencyField.js'
 import { statusField } from '../../fields/statusField.js'
+import { tenantBaseListFilter } from '../carts/tenantBaseListFilter.js'
 
 type Props = {
   access: Pick<AccessConfig, 'isAdmin'>
@@ -26,6 +27,21 @@ type Props = {
    * Enable variants in the transactions collection.
    */
   enableVariants?: boolean
+  /**
+   * Multi-tenant configuration for transactions.
+   * When enabled, transactions will have a tenant field and access will be scoped by tenant for admins.
+   */
+  multiTenant?: {
+    /**
+     * Whether multi-tenant support is enabled.
+     */
+    enabled: boolean
+    /**
+     * The slug of the tenants collection.
+     * @default 'tenants'
+     */
+    tenantsSlug?: string
+  }
   /**
    * Slug of the orders collection, defaults to 'orders'.
    */
@@ -49,13 +65,35 @@ export const createTransactionsCollection: (props: Props) => CollectionConfig = 
     currenciesConfig,
     customersSlug = 'users',
     enableVariants = false,
+    multiTenant,
     ordersSlug = 'orders',
     paymentMethods,
     productsSlug = 'products',
     variantsSlug = 'variants',
   } = props || {}
 
+  const tenantsSlug = multiTenant?.tenantsSlug || 'tenants'
+
   const fields: Field[] = [
+    // Tenant field (only added when multiTenant is enabled)
+    ...(multiTenant?.enabled
+      ? [
+          {
+            name: 'tenant',
+            type: 'relationship',
+            relationTo: tenantsSlug,
+            required: false,
+            index: true,
+            admin: {
+              position: 'sidebar',
+              readOnly: true,
+            },
+            label: ({ t }) =>
+              // @ts-expect-error - translations are not typed in plugins yet
+              t('plugin-ecommerce:tenant') || 'Tenant',
+          } as Field,
+        ]
+      : []),
     {
       type: 'tabs',
       tabs: [
@@ -203,6 +241,10 @@ export const createTransactionsCollection: (props: Props) => CollectionConfig = 
         // @ts-expect-error - translations are not typed in plugins yet
         t('plugin-ecommerce:transactionsCollectionDescription'),
       group: 'Ecommerce',
+      // Filter list view by tenant when multiTenant is enabled
+      ...(multiTenant?.enabled && {
+        baseListFilter: tenantBaseListFilter(),
+      }),
     },
     fields,
     labels: {

@@ -383,6 +383,22 @@ export type OrdersConfig = {
 };
 export type TransactionsConfig = {
     /**
+     * Multi-tenant configuration for transactions.
+     * When enabled, transactions will have a tenant field and access will be scoped by tenant for admins.
+     * If not specified, falls back to the carts.multiTenant configuration.
+     */
+    multiTenant?: {
+        /**
+         * Whether multi-tenant support is enabled.
+         */
+        enabled: boolean;
+        /**
+         * The slug of the tenants collection.
+         * @default 'tenants'
+         */
+        tenantsSlug?: string;
+    };
+    /**
      * Override the default transactions collection. If you override the collection, you should ensure it has the required fields for transactions or re-use the default fields.
      *
      * @example

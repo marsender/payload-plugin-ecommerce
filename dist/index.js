@@ -180,6 +180,12 @@ export const ecommercePlugin = (pluginConfig)=>async (incomingConfig)=>{
             }
         }
         if (sanitizedPluginConfig.transactions) {
+            // Get transactions config object (or empty if just boolean true)
+            const transactionsConfig = typeof sanitizedPluginConfig.transactions === 'object' ? sanitizedPluginConfig.transactions : {};
+            // Get carts config for fallback multiTenant setting
+            const cartsConfig = typeof sanitizedPluginConfig.carts === 'object' ? sanitizedPluginConfig.carts : {};
+            // Use transactions.multiTenant if specified, otherwise fall back to carts.multiTenant
+            const transactionsMultiTenant = transactionsConfig.multiTenant ?? cartsConfig.multiTenant;
             const defaultTransactionsCollection = createTransactionsCollection({
                 access: accessConfig,
                 addressFields,
@@ -187,6 +193,7 @@ export const ecommercePlugin = (pluginConfig)=>async (incomingConfig)=>{
                 currenciesConfig,
                 customersSlug: collectionSlugMap.customers,
                 enableVariants,
+                multiTenant: transactionsMultiTenant,
                 ordersSlug: collectionSlugMap.orders,
                 paymentMethods,
                 productsSlug: collectionSlugMap.products,

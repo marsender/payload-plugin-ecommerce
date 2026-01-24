@@ -20,6 +20,21 @@ type Props = {
      */
     enableVariants?: boolean;
     /**
+     * Multi-tenant configuration for transactions.
+     * When enabled, transactions will have a tenant field and access will be scoped by tenant for admins.
+     */
+    multiTenant?: {
+        /**
+         * Whether multi-tenant support is enabled.
+         */
+        enabled: boolean;
+        /**
+         * The slug of the tenants collection.
+         * @default 'tenants'
+         */
+        tenantsSlug?: string;
+    };
+    /**
      * Slug of the orders collection, defaults to 'orders'.
      */
     ordersSlug?: string;

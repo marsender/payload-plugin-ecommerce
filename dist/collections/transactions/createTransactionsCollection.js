@@ -2,9 +2,27 @@ import { amountField } from '../../fields/amountField.js';
 import { cartItemsField } from '../../fields/cartItemsField.js';
 import { currencyField } from '../../fields/currencyField.js';
 import { statusField } from '../../fields/statusField.js';
+import { tenantBaseListFilter } from '../carts/tenantBaseListFilter.js';
 export const createTransactionsCollection = (props)=>{
-    const { access, addressFields, cartsSlug = 'carts', currenciesConfig, customersSlug = 'users', enableVariants = false, ordersSlug = 'orders', paymentMethods, productsSlug = 'products', variantsSlug = 'variants' } = props || {};
+    const { access, addressFields, cartsSlug = 'carts', currenciesConfig, customersSlug = 'users', enableVariants = false, multiTenant, ordersSlug = 'orders', paymentMethods, productsSlug = 'products', variantsSlug = 'variants' } = props || {};
+    const tenantsSlug = multiTenant?.tenantsSlug || 'tenants';
     const fields = [
+        // Tenant field (only added when multiTenant is enabled)
+        ...multiTenant?.enabled ? [
+            {
+                name: 'tenant',
+                type: 'relationship',
+                relationTo: tenantsSlug,
+                required: false,
+                index: true,
+                admin: {
+                    position: 'sidebar',
+                    readOnly: true
+                },
+                label: ({ t })=>// @ts-expect-error - translations are not typed in plugins yet
+                    t('plugin-ecommerce:tenant') || 'Tenant'
+            }
+        ] : [],
         {
             type: 'tabs',
             tabs: [
@@ -139,7 +157,11 @@ export const createTransactionsCollection = (props)=>{
             ],
             description: ({ t })=>// @ts-expect-error - translations are not typed in plugins yet
                 t('plugin-ecommerce:transactionsCollectionDescription'),
-            group: 'Ecommerce'
+            group: 'Ecommerce',
+            // Filter list view by tenant when multiTenant is enabled
+            ...multiTenant?.enabled && {
+                baseListFilter: tenantBaseListFilter()
+            }
         },
         fields,
         labels: {
