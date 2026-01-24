@@ -6,7 +6,8 @@ import { amountField } from '../../fields/amountField.js'
 import { cartItemsField } from '../../fields/cartItemsField.js'
 import { currencyField } from '../../fields/currencyField.js'
 import { statusField } from '../../fields/statusField.js'
-import { tenantBaseListFilter } from '../carts/tenantBaseListFilter.js'
+import { populateTenant } from '../../utilities/populateTenant.js'
+import { tenantBaseListFilter } from '../../utilities/tenantBaseListFilter.js'
 
 type Props = {
   access: Pick<AccessConfig, 'isAdmin'>
@@ -58,42 +59,30 @@ type Props = {
 }
 
 export const createTransactionsCollection: (props: Props) => CollectionConfig = (props) => {
-  const {
-    access,
-    addressFields,
-    cartsSlug = 'carts',
-    currenciesConfig,
-    customersSlug = 'users',
-    enableVariants = false,
-    multiTenant,
-    ordersSlug = 'orders',
-    paymentMethods,
-    productsSlug = 'products',
-    variantsSlug = 'variants',
-  } = props || {}
+  const { access, addressFields, cartsSlug = 'carts', currenciesConfig, customersSlug = 'users', enableVariants = false, multiTenant, ordersSlug = 'orders', paymentMethods, productsSlug = 'products', variantsSlug = 'variants' } = props || {}
 
   const tenantsSlug = multiTenant?.tenantsSlug || 'tenants'
 
   const fields: Field[] = [
     // Tenant field (only added when multiTenant is enabled)
-    ...(multiTenant?.enabled
-      ? [
-          {
-            name: 'tenant',
-            type: 'relationship',
-            relationTo: tenantsSlug,
-            required: false,
-            index: true,
-            admin: {
-              position: 'sidebar',
-              readOnly: true,
-            },
-            label: ({ t }) =>
-              // @ts-expect-error - translations are not typed in plugins yet
-              t('plugin-ecommerce:tenant') || 'Tenant',
-          } as Field,
-        ]
-      : []),
+    ...(multiTenant?.enabled ?
+      [
+        {
+          name: 'tenant',
+          type: 'relationship',
+          relationTo: tenantsSlug,
+          required: false,
+          index: true,
+          admin: {
+            position: 'sidebar',
+            readOnly: true,
+          },
+          label: ({ t }) =>
+            // @ts-expect-error - translations are not typed in plugins yet
+            t('plugin-ecommerce:tenant') || 'Tenant',
+        } as Field,
+      ]
+    : []),
     {
       type: 'tabs',
       tabs: [
@@ -118,22 +107,22 @@ export const createTransactionsCollection: (props: Props) => CollectionConfig = 
               productsSlug,
               variantsSlug,
             }),
-            ...(paymentMethods?.length && paymentMethods.length > 0
-              ? [
-                  {
-                    name: 'paymentMethod',
-                    type: 'select',
-                    label: ({ t }) =>
-                      // @ts-expect-error - translations are not typed in plugins yet
-                      t('plugin-ecommerce:paymentMethod'),
-                    options: paymentMethods.map((method) => ({
-                      label: method.label ?? method.name,
-                      value: method.name,
-                    })),
-                  } as Field,
-                  ...(paymentMethods.map((method) => method.group) || []),
-                ]
-              : []),
+            ...(paymentMethods?.length && paymentMethods.length > 0 ?
+              [
+                {
+                  name: 'paymentMethod',
+                  type: 'select',
+                  label: ({ t }) =>
+                    // @ts-expect-error - translations are not typed in plugins yet
+                    t('plugin-ecommerce:paymentMethod'),
+                  options: paymentMethods.map((method) => ({
+                    label: method.label ?? method.name,
+                    value: method.name,
+                  })),
+                } as Field,
+                ...(paymentMethods.map((method) => method.group) || []),
+              ]
+            : []),
           ],
           label: ({ t }) =>
             // @ts-expect-error - translations are not typed in plugins yet
@@ -141,18 +130,18 @@ export const createTransactionsCollection: (props: Props) => CollectionConfig = 
         },
         {
           fields: [
-            ...(addressFields
-              ? [
-                  {
-                    name: 'billingAddress',
-                    type: 'group',
-                    fields: addressFields,
-                    label: ({ t }) =>
-                      // @ts-expect-error - translations are not typed in plugins yet
-                      t('plugin-ecommerce:billingAddress'),
-                  } as Field,
-                ]
-              : []),
+            ...(addressFields ?
+              [
+                {
+                  name: 'billingAddress',
+                  type: 'group',
+                  fields: addressFields,
+                  label: ({ t }) =>
+                    // @ts-expect-error - translations are not typed in plugins yet
+                    t('plugin-ecommerce:billingAddress'),
+                } as Field,
+              ]
+            : []),
           ],
           label: ({ t }) =>
             // @ts-expect-error - translations are not typed in plugins yet
@@ -207,24 +196,24 @@ export const createTransactionsCollection: (props: Props) => CollectionConfig = 
       },
       relationTo: cartsSlug,
     },
-    ...(currenciesConfig
-      ? [
-          {
-            type: 'row',
-            admin: {
-              position: 'sidebar',
-            },
-            fields: [
-              amountField({
-                currenciesConfig,
-              }),
-              currencyField({
-                currenciesConfig,
-              }),
-            ],
-          } as Field,
-        ]
-      : []),
+    ...(currenciesConfig ?
+      [
+        {
+          type: 'row',
+          admin: {
+            position: 'sidebar',
+          },
+          fields: [
+            amountField({
+              currenciesConfig,
+            }),
+            currencyField({
+              currenciesConfig,
+            }),
+          ],
+        } as Field,
+      ]
+    : []),
   ]
 
   const baseConfig: CollectionConfig = {
@@ -247,6 +236,12 @@ export const createTransactionsCollection: (props: Props) => CollectionConfig = 
       }),
     },
     fields,
+    hooks: {
+      beforeChange: [
+        // Populate tenant from cookies when multiTenant is enabled
+        ...(multiTenant?.enabled ? [populateTenant({ tenantsSlug })] : []),
+      ],
+    },
     labels: {
       plural: ({ t }) =>
         // @ts-expect-error - translations are not typed in plugins yet

@@ -10,9 +10,9 @@ import { mergeCartEndpoint } from './endpoints/mergeCart.js';
 import { removeItemEndpoint } from './endpoints/removeItem.js';
 import { updateItemEndpoint } from './endpoints/updateItem.js';
 import { hasCartSecretAccess } from './hasCartSecretAccess.js';
-import { populateTenant } from './populateTenant.js';
+import { populateTenant } from '../../utilities/populateTenant.js';
 import { statusBeforeRead } from './statusBeforeRead.js';
-import { tenantBaseListFilter } from './tenantBaseListFilter.js';
+import { tenantBaseListFilter } from '../../utilities/tenantBaseListFilter.js';
 export const createCartsCollection = (props)=>{
     const { access, allowGuestCarts = false, cartItemMatcher, currenciesConfig, customersSlug = 'users', enableVariants = false, multiTenant, productsSlug = 'products', variantsSlug = 'variants' } = props || {};
     const tenantsSlug = multiTenant?.tenantsSlug || 'tenants';

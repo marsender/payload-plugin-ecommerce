@@ -15,9 +15,9 @@ import { mergeCartEndpoint } from './endpoints/mergeCart.js'
 import { removeItemEndpoint } from './endpoints/removeItem.js'
 import { updateItemEndpoint } from './endpoints/updateItem.js'
 import { hasCartSecretAccess } from './hasCartSecretAccess.js'
-import { populateTenant } from './populateTenant.js'
+import { populateTenant } from '../../utilities/populateTenant.js'
 import { statusBeforeRead } from './statusBeforeRead.js'
-import { tenantBaseListFilter } from './tenantBaseListFilter.js'
+import { tenantBaseListFilter } from '../../utilities/tenantBaseListFilter.js'
 
 type Props = {
   access: Pick<Required<AccessConfig>, 'isAdmin' | 'isAuthenticated' | 'isDocumentOwner'>
@@ -83,17 +83,7 @@ type Props = {
 }
 
 export const createCartsCollection: (props: Props) => CollectionConfig = (props) => {
-  const {
-    access,
-    allowGuestCarts = false,
-    cartItemMatcher,
-    currenciesConfig,
-    customersSlug = 'users',
-    enableVariants = false,
-    multiTenant,
-    productsSlug = 'products',
-    variantsSlug = 'variants',
-  } = props || {}
+  const { access, allowGuestCarts = false, cartItemMatcher, currenciesConfig, customersSlug = 'users', enableVariants = false, multiTenant, productsSlug = 'products', variantsSlug = 'variants' } = props || {}
 
   const tenantsSlug = multiTenant?.tenantsSlug || 'tenants'
 
@@ -101,26 +91,26 @@ export const createCartsCollection: (props: Props) => CollectionConfig = (props)
 
   const fields: Field[] = [
     // Tenant field (only added when multiTenant is enabled)
-    ...(multiTenant?.enabled
-      ? [
-          {
-            name: 'tenant',
-            type: 'relationship',
-            relationTo: tenantsSlug,
-            // Not required - guests create carts without tenant initially
-            required: false,
-            index: true,
-            admin: {
-              position: 'sidebar',
-              // Read-only for everyone - populated automatically by hook
-              readOnly: true,
-            },
-            label: ({ t }) =>
-              // @ts-expect-error - translations are not typed in plugins yet
-              t('plugin-ecommerce:tenant') || 'Tenant',
-          } as Field,
-        ]
-      : []),
+    ...(multiTenant?.enabled ?
+      [
+        {
+          name: 'tenant',
+          type: 'relationship',
+          relationTo: tenantsSlug,
+          // Not required - guests create carts without tenant initially
+          required: false,
+          index: true,
+          admin: {
+            position: 'sidebar',
+            // Read-only for everyone - populated automatically by hook
+            readOnly: true,
+          },
+          label: ({ t }) =>
+            // @ts-expect-error - translations are not typed in plugins yet
+            t('plugin-ecommerce:tenant') || 'Tenant',
+        } as Field,
+      ]
+    : []),
     cartItemsField({
       enableVariants,
       overrides: {
@@ -211,47 +201,41 @@ export const createCartsCollection: (props: Props) => CollectionConfig = (props)
       ],
       virtual: true,
     },
-    ...(currenciesConfig
-      ? [
-          {
-            type: 'row',
-            admin: { position: 'sidebar' },
-            fields: [
-              amountField({
-                currenciesConfig,
-                overrides: {
-                  name: 'subtotal',
+    ...(currenciesConfig ?
+      [
+        {
+          type: 'row',
+          admin: { position: 'sidebar' },
+          fields: [
+            amountField({
+              currenciesConfig,
+              overrides: {
+                name: 'subtotal',
 
-                  label: ({ t }) =>
-                    // @ts-expect-error - translations are not typed in plugins yet
-                    t('plugin-ecommerce:subtotal'),
-                },
-              }),
-              currencyField({
-                currenciesConfig,
-              }),
-            ],
-          } as Field,
-        ]
-      : []),
+                label: ({ t }) =>
+                  // @ts-expect-error - translations are not typed in plugins yet
+                  t('plugin-ecommerce:subtotal'),
+              },
+            }),
+            currencyField({
+              currenciesConfig,
+            }),
+          ],
+        } as Field,
+      ]
+    : []),
   ]
 
   // Internal access function for guest users (unauthenticated)
   const isGuest: Access = ({ req }) => !req.user
 
   // Admin access: when multiTenant is enabled, use tenant-scoped access; otherwise use isAdmin
-  const adminAccess = multiTenant?.enabled
-    ? hasTenantAccess({ isAdmin: access.isAdmin })
-    : access.isAdmin
+  const adminAccess = multiTenant?.enabled ? hasTenantAccess({ isAdmin: access.isAdmin }) : access.isAdmin
 
   const baseConfig: CollectionConfig = {
     slug: cartsSlug,
     access: {
-      create: accessOR(
-        access.isAdmin,
-        access.isAuthenticated,
-        conditional(allowGuestCarts, isGuest),
-      ),
+      create: accessOR(access.isAdmin, access.isAuthenticated, conditional(allowGuestCarts, isGuest)),
       delete: accessOR(adminAccess, access.isDocumentOwner, hasCartSecretAccess(allowGuestCarts)),
       read: accessOR(adminAccess, access.isDocumentOwner, hasCartSecretAccess(allowGuestCarts)),
       update: accessOR(adminAccess, access.isDocumentOwner, hasCartSecretAccess(allowGuestCarts)),

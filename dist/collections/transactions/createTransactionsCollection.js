@@ -2,7 +2,8 @@ import { amountField } from '../../fields/amountField.js';
 import { cartItemsField } from '../../fields/cartItemsField.js';
 import { currencyField } from '../../fields/currencyField.js';
 import { statusField } from '../../fields/statusField.js';
-import { tenantBaseListFilter } from '../carts/tenantBaseListFilter.js';
+import { populateTenant } from '../../utilities/populateTenant.js';
+import { tenantBaseListFilter } from '../../utilities/tenantBaseListFilter.js';
 export const createTransactionsCollection = (props)=>{
     const { access, addressFields, cartsSlug = 'carts', currenciesConfig, customersSlug = 'users', enableVariants = false, multiTenant, ordersSlug = 'orders', paymentMethods, productsSlug = 'products', variantsSlug = 'variants' } = props || {};
     const tenantsSlug = multiTenant?.tenantsSlug || 'tenants';
@@ -164,6 +165,16 @@ export const createTransactionsCollection = (props)=>{
             }
         },
         fields,
+        hooks: {
+            beforeChange: [
+                // Populate tenant from cookies when multiTenant is enabled
+                ...multiTenant?.enabled ? [
+                    populateTenant({
+                        tenantsSlug
+                    })
+                ] : []
+            ]
+        },
         labels: {
             plural: ({ t })=>// @ts-expect-error - translations are not typed in plugins yet
                 t('plugin-ecommerce:transactions'),
