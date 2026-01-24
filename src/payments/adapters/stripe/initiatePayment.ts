@@ -128,6 +128,7 @@ export const initiatePayment: (props: Props) => NonNullable<PaymentAdapter>['ini
 			// Create a transaction for the payment intent in the database
 			await payload.create({
 				collection: transactionsSlug,
+				req,
 				data: {
 					...(req.user ? { customer: req.user.id } : { customerEmail }),
 					amount: paymentIntent.amount,

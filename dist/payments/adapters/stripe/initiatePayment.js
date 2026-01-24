@@ -96,6 +96,7 @@ export const initiatePayment = (props)=>async ({ data, req, transactionsSlug })=
             // Create a transaction for the payment intent in the database
             await payload.create({
                 collection: transactionsSlug,
+                req,
                 data: {
                     ...req.user ? {
                         customer: req.user.id
