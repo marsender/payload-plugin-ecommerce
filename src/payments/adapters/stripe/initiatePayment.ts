@@ -73,20 +73,25 @@ export const initiatePayment: (props: Props) => NonNullable<PaymentAdapter>['ini
 			}
 
 			const flattenedCart = cart.items.map((item) => {
-				const productID = typeof item.product === 'object' ? item.product.id : item.product
-				const variantID =
-					item.variant ?
-						typeof item.variant === 'object' ?
-							item.variant.id
-						:	item.variant
-					:	undefined
+			const productID = typeof item.product === 'object' ? item.product.id : item.product
+			const variantID =
+				item.variant ?
+					typeof item.variant === 'object' ?
+						item.variant.id
+					:	item.variant
+				:	undefined
 
-				return {
-					product: productID,
-					quantity: item.quantity,
-					variant: variantID,
-				}
-			})
+			// Preserve any additional custom properties (e.g., deliveryOption, customizations)
+			// that may have been added via cartItemMatcher
+			const { product: _product, variant: _variant, ...customProperties } = item
+
+			return {
+				...customProperties,
+				product: productID,
+				quantity: item.quantity,
+				...(variantID ? { variant: variantID } : {}),
+			}
+		})
 
 			const shippingAddressAsString = JSON.stringify(shippingAddressFromData)
 

@@ -51,10 +51,16 @@ export const initiatePayment = (props)=>async ({ data, req, transactionsSlug })=
             const flattenedCart = cart.items.map((item)=>{
                 const productID = typeof item.product === 'object' ? item.product.id : item.product;
                 const variantID = item.variant ? typeof item.variant === 'object' ? item.variant.id : item.variant : undefined;
+                // Preserve any additional custom properties (e.g., deliveryOption, customizations)
+                // that may have been added via cartItemMatcher
+                const { product: _product, variant: _variant, ...customProperties } = item;
                 return {
+                    ...customProperties,
                     product: productID,
                     quantity: item.quantity,
-                    variant: variantID
+                    ...variantID ? {
+                        variant: variantID
+                    } : {}
                 };
             });
             const shippingAddressAsString = JSON.stringify(shippingAddressFromData);

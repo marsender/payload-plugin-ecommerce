@@ -20,18 +20,23 @@ export const ecommercePlugin = (pluginConfig)=>async (incomingConfig)=>{
         const sanitizedPluginConfig = sanitizePluginConfig({
             pluginConfig
         });
-        /**
-     * Used to keep track of the slugs of collections in case they are overridden by the user.
-     */ const collectionSlugMap = getCollectionSlugMap({
-            sanitizedPluginConfig
-        });
         const accessConfig = sanitizedPluginConfig.access;
         // Ensure collections exists
         if (!incomingConfig.collections) {
             incomingConfig.collections = [];
         }
-        // Controls whether variants are enabled in the plugin. This is toggled to true under products config
-        let enableVariants = false;
+        // Determine if variants are enabled based on products config
+        const productsConfig = typeof sanitizedPluginConfig.products === 'boolean' ? sanitizedPluginConfig.products ? {
+            variants: true
+        } : undefined : sanitizedPluginConfig.products;
+        const enableVariants = Boolean(productsConfig?.variants);
+        /**
+     * Used to keep track of the slugs of collections in case they are overridden by the user.
+     * Variant-related slugs are only included when variants are enabled.
+     */ const collectionSlugMap = getCollectionSlugMap({
+            enableVariants,
+            sanitizedPluginConfig
+        });
         const currenciesConfig = sanitizedPluginConfig.currencies;
         let addressFields;
         if (sanitizedPluginConfig.addresses) {
@@ -48,11 +53,7 @@ export const ecommercePlugin = (pluginConfig)=>async (incomingConfig)=>{
             }) : defaultAddressesCollection;
             incomingConfig.collections.push(addressesCollection);
         }
-        if (sanitizedPluginConfig.products) {
-            const productsConfig = typeof sanitizedPluginConfig.products === 'boolean' ? {
-                variants: true
-            } : sanitizedPluginConfig.products;
-            enableVariants = Boolean(productsConfig.variants);
+        if (productsConfig) {
             if (productsConfig.variants) {
                 const variantsConfig = typeof productsConfig.variants === 'boolean' ? undefined : productsConfig.variants;
                 const defaultVariantsCollection = createVariantsCollection({
@@ -60,22 +61,22 @@ export const ecommercePlugin = (pluginConfig)=>async (incomingConfig)=>{
                     currenciesConfig,
                     inventory: sanitizedPluginConfig.inventory,
                     productsSlug: collectionSlugMap.products,
-                    variantOptionsSlug: collectionSlugMap.variantOptions,
-                    variantTypesSlug: collectionSlugMap.variantTypes
+                    variantOptionsSlug: collectionSlugMap.variantOptions ?? 'variantOptions',
+                    variantTypesSlug: collectionSlugMap.variantTypes ?? 'variantTypes'
                 });
                 const variants = variantsConfig && typeof variantsConfig === 'object' && 'variantsCollectionOverride' in variantsConfig && variantsConfig.variantsCollectionOverride ? await variantsConfig.variantsCollectionOverride({
                     defaultCollection: defaultVariantsCollection
                 }) : defaultVariantsCollection;
                 const defaultVariantTypesCollection = createVariantTypesCollection({
                     access: accessConfig,
-                    variantOptionsSlug: collectionSlugMap.variantOptions
+                    variantOptionsSlug: collectionSlugMap.variantOptions ?? 'variantOptions'
                 });
                 const variantTypes = variantsConfig && typeof variantsConfig === 'object' && 'variantTypesCollectionOverride' in variantsConfig && variantsConfig.variantTypesCollectionOverride ? await variantsConfig.variantTypesCollectionOverride({
                     defaultCollection: defaultVariantTypesCollection
                 }) : defaultVariantTypesCollection;
                 const defaultVariantOptionsCollection = createVariantOptionsCollection({
                     access: accessConfig,
-                    variantTypesSlug: collectionSlugMap.variantTypes
+                    variantTypesSlug: collectionSlugMap.variantTypes ?? 'variantTypes'
                 });
                 const variantOptions = variantsConfig && typeof variantsConfig === 'object' && 'variantOptionsCollectionOverride' in variantsConfig && variantsConfig.variantOptionsCollectionOverride ? await variantsConfig.variantOptionsCollectionOverride({
                     defaultCollection: defaultVariantOptionsCollection
