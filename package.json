@@ -1,145 +1,145 @@
 {
-	"name": "@marsender/payload-plugin-ecommerce",
-	"version": "3.71.2",
-	"description": "Ecommerce plugin for Payload - Fork with custom enhancements for multi-tenant",
-	"keywords": [
-		"payload",
-		"cms",
-		"plugin",
-		"typescript",
-		"react",
-		"ecommerce"
-	],
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/marsender/payload-plugin-ecommerce.git"
-	},
-	"license": "MIT",
-	"author": "Payload <dev@payloadcms.com> (https://payloadcms.com) and Opale-concept <marsender@opale-concept.com> (https://opale-concept.com) for modifications",
-	"type": "module",
-	"exports": {
-		".": {
-			"import": "./dist/index.js",
-			"types": "./dist/index.d.ts",
-			"default": "./dist/index.js"
-		},
-		"./types": {
-			"import": "./dist/exports/types.js",
-			"types": "./dist/exports/types.d.ts",
-			"default": "./dist/exports/types.js"
-		},
-		"./payments/stripe": {
-			"import": "./dist/exports/payments/stripe.js",
-			"types": "./dist/exports/payments/stripe.d.ts",
-			"default": "./dist/exports/payments/stripe.js"
-		},
-		"./rsc": {
-			"import": "./dist/exports/rsc.js",
-			"types": "./dist/exports/rsc.d.ts",
-			"default": "./dist/exports/rsc.js"
-		},
-		"./translations": {
-			"import": "./dist/exports/translations.js",
-			"types": "./dist/exports/translations.d.ts",
-			"default": "./dist/exports/translations.js"
-		},
-		"./client": {
-			"import": "./dist/exports/client/index.js",
-			"types": "./dist/exports/client/index.d.ts",
-			"default": "./dist/exports/client/index.js"
-		},
-		"./client/react": {
-			"import": "./dist/exports/client/react.js",
-			"types": "./dist/exports/client/react.d.ts",
-			"default": "./dist/exports/client/react.js"
-		}
-	},
-	"main": "./dist/index.js",
-	"types": "./dist/index.d.ts",
-	"files": [
-		"src",
-		"dist"
-	],
-	"scripts": {
-		"build": "pnpm copyfiles && pnpm build:types && pnpm build:swc",
-		"build:swc": "swc ./src -d ./dist --config-file .swcrc --strip-leading-paths",
-		"build:types": "tsc --emitDeclarationOnly --outDir dist",
-		"clean": "rimraf -g {dist,*.tsbuildinfo}",
-		"copyfiles": "copyfiles -u 1 \"src/**/*.{html,css,scss,ttf,woff,woff2,eot,svg,jpg,png,json}\" dist/",
-		"lint": "eslint src",
-		"lint:fix": "eslint src --fix",
-		"type-check": "tsc --noEmit"
-	},
-	"dependencies": {
-		"qs-esm": "7.0.3"
-	},
-	"devDependencies": {
-		"@swc/cli": "^0.7.9",
-		"@swc/core": "^1.15.8",
-		"@types/json-schema": "^7.0.15",
-		"@types/node": "^25.0.6",
-		"@types/react": "^19.2.8",
-		"@types/react-dom": "^19.2.3",
-		"copyfiles": "^2.4.1",
-		"eslint": "^9.39.2",
-		"jiti": "^2.6.1",
-		"rimraf": "^6.1.2",
-		"typescript": "^5.9.3",
-		"typescript-eslint": "^8.53.0"
-	},
-	"peerDependencies": {
-		"@payloadcms/translations": "^3.0.0",
-		"@payloadcms/ui": "^3.0.0",
-		"payload": "^3.0.0",
-		"react": "^19.0.0",
-		"react-dom": "^19.0.0",
-		"stripe": "^20.0.0"
-	},
-	"peerDependenciesMeta": {
-		"stripe": {
-			"optional": true
-		}
-	},
-	"publishConfig": {
-		"exports": {
-			".": {
-				"import": "./dist/index.js",
-				"types": "./dist/index.d.ts",
-				"default": "./dist/index.js"
-			},
-			"./types": {
-				"import": "./dist/exports/types.js",
-				"types": "./dist/exports/types.d.ts",
-				"default": "./dist/exports/types.js"
-			},
-			"./payments/stripe": {
-				"import": "./dist/exports/payments/stripe.js",
-				"types": "./dist/exports/payments/stripe.d.ts",
-				"default": "./dist/exports/payments/stripe.js"
-			},
-			"./rsc": {
-				"import": "./dist/exports/rsc.js",
-				"types": "./dist/exports/rsc.d.ts",
-				"default": "./dist/exports/rsc.js"
-			},
-			"./client": {
-				"import": "./dist/exports/client/index.js",
-				"types": "./dist/exports/client/index.d.ts",
-				"default": "./dist/exports/client/index.js"
-			},
-			"./client/react": {
-				"import": "./dist/exports/client/react.js",
-				"types": "./dist/exports/client/react.d.ts",
-				"default": "./dist/exports/client/react.js"
-			},
-			"./translations": {
-				"import": "./dist/exports/translations.js",
-				"types": "./dist/exports/translations.d.ts",
-				"default": "./dist/exports/translations.js"
-			}
-		},
-		"main": "./dist/index.js",
-		"registry": "https://registry.npmjs.org/",
-		"types": "./dist/index.d.ts"
-	}
+  "name": "@marsender/payload-plugin-ecommerce",
+  "version": "3.69.0",
+  "description": "Ecommerce plugin for Payload - Fork with custom enhancements for multi-tenant",
+  "keywords": [
+    "payload",
+    "cms",
+    "plugin",
+    "typescript",
+    "react",
+    "ecommerce"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/marsender/payload-plugin-ecommerce.git"
+  },
+  "license": "MIT",
+  "author": "Payload <dev@payloadcms.com> (https://payloadcms.com) and Opale-concept <marsender@opale-concept.com> (https://opale-concept.com) for modifications",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./types": {
+      "import": "./dist/exports/types.js",
+      "types": "./dist/exports/types.d.ts",
+      "default": "./dist/exports/types.js"
+    },
+    "./payments/stripe": {
+      "import": "./dist/exports/payments/stripe.js",
+      "types": "./dist/exports/payments/stripe.d.ts",
+      "default": "./dist/exports/payments/stripe.js"
+    },
+    "./rsc": {
+      "import": "./dist/exports/rsc.js",
+      "types": "./dist/exports/rsc.d.ts",
+      "default": "./dist/exports/rsc.js"
+    },
+    "./translations": {
+      "import": "./dist/exports/translations.js",
+      "types": "./dist/exports/translations.d.ts",
+      "default": "./dist/exports/translations.js"
+    },
+    "./client": {
+      "import": "./dist/exports/client/index.js",
+      "types": "./dist/exports/client/index.d.ts",
+      "default": "./dist/exports/client/index.js"
+    },
+    "./client/react": {
+      "import": "./dist/exports/client/react.js",
+      "types": "./dist/exports/client/react.d.ts",
+      "default": "./dist/exports/client/react.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "src",
+    "dist"
+  ],
+  "scripts": {
+    "build": "pnpm copyfiles && pnpm build:types && pnpm build:swc",
+    "build:swc": "swc ./src -d ./dist --config-file .swcrc --strip-leading-paths",
+    "build:types": "tsc --emitDeclarationOnly --outDir dist",
+    "clean": "rimraf -g {dist,*.tsbuildinfo}",
+    "copyfiles": "copyfiles -u 1 \"src/**/*.{html,css,scss,ttf,woff,woff2,eot,svg,jpg,png,json}\" dist/",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "qs-esm": "7.0.3"
+  },
+  "devDependencies": {
+    "@swc/cli": "^0.7.9",
+    "@swc/core": "^1.15.8",
+    "@types/json-schema": "^7.0.15",
+    "@types/node": "^25.0.6",
+    "@types/react": "^19.2.8",
+    "@types/react-dom": "^19.2.3",
+    "copyfiles": "^2.4.1",
+    "eslint": "^9.39.2",
+    "jiti": "^2.6.1",
+    "rimraf": "^6.1.2",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.53.0"
+  },
+  "peerDependencies": {
+    "@payloadcms/translations": "^3.0.0",
+    "@payloadcms/ui": "^3.0.0",
+    "payload": "^3.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "stripe": "^20.0.0"
+  },
+  "peerDependenciesMeta": {
+    "stripe": {
+      "optional": true
+    }
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "import": "./dist/index.js",
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./types": {
+        "import": "./dist/exports/types.js",
+        "types": "./dist/exports/types.d.ts",
+        "default": "./dist/exports/types.js"
+      },
+      "./payments/stripe": {
+        "import": "./dist/exports/payments/stripe.js",
+        "types": "./dist/exports/payments/stripe.d.ts",
+        "default": "./dist/exports/payments/stripe.js"
+      },
+      "./rsc": {
+        "import": "./dist/exports/rsc.js",
+        "types": "./dist/exports/rsc.d.ts",
+        "default": "./dist/exports/rsc.js"
+      },
+      "./client": {
+        "import": "./dist/exports/client/index.js",
+        "types": "./dist/exports/client/index.d.ts",
+        "default": "./dist/exports/client/index.js"
+      },
+      "./client/react": {
+        "import": "./dist/exports/client/react.js",
+        "types": "./dist/exports/client/react.d.ts",
+        "default": "./dist/exports/client/react.js"
+      },
+      "./translations": {
+        "import": "./dist/exports/translations.js",
+        "types": "./dist/exports/translations.d.ts",
+        "default": "./dist/exports/translations.js"
+      }
+    },
+    "main": "./dist/index.js",
+    "registry": "https://registry.npmjs.org/",
+    "types": "./dist/index.d.ts"
+  }
 }
