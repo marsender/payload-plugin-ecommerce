@@ -1,7 +1,7 @@
+import type { AcceptedLanguages } from '@payloadcms/translations'
 import type { Config, Endpoint } from 'payload'
 
-import { deepMergeSimple } from 'payload/shared'
-
+import type { PluginDefaultTranslationsObject } from './translations/types.js'
 import type { EcommercePluginConfig, SanitizedEcommercePluginConfig } from './types/index.js'
 
 import { createAddressesCollection } from './collections/addresses/createAddressesCollection.js'
@@ -249,8 +249,10 @@ export const ecommercePlugin =
               currenciesConfig,
               ordersSlug: collectionSlugMap.orders,
               paymentMethod,
+              productsSlug: collectionSlugMap.products,
               productsValidation,
               transactionsSlug: collectionSlugMap.transactions,
+              variantsSlug: collectionSlugMap.variants ?? 'variants',
             }),
             method: 'post',
             path: `${methodPath}/confirm-order`,
@@ -318,18 +320,32 @@ export const ecommercePlugin =
       incomingConfig.collections.push(transactionsCollection)
     }
 
+    /**
+     * Merge plugin translations
+     */
     if (!incomingConfig.i18n) {
       incomingConfig.i18n = {}
     }
+    Object.entries(translations).forEach(([locale, pluginI18nObject]) => {
+      const typedLocale = locale as AcceptedLanguages
+      if (!incomingConfig.i18n!.translations) {
+        incomingConfig.i18n!.translations = {}
+      }
+      if (!(typedLocale in incomingConfig.i18n!.translations)) {
+        incomingConfig.i18n!.translations[typedLocale] = {}
+      }
+      if (!('plugin-ecommerce' in incomingConfig.i18n!.translations[typedLocale]!)) {
+        ;(incomingConfig.i18n!.translations[typedLocale] as PluginDefaultTranslationsObject)[
+          'plugin-ecommerce'
+        ] = {} as PluginDefaultTranslationsObject['plugin-ecommerce']
+      }
 
-    if (!incomingConfig.i18n?.translations) {
-      incomingConfig.i18n.translations = {}
-    }
-
-    incomingConfig.i18n.translations = deepMergeSimple(
-      translations,
-      incomingConfig.i18n?.translations,
-    )
+      ;(incomingConfig.i18n!.translations[typedLocale] as PluginDefaultTranslationsObject)[
+        'plugin-ecommerce'
+      ] = {
+        ...pluginI18nObject.translations['plugin-ecommerce'],
+      }
+    })
 
     if (!incomingConfig.typescript) {
       incomingConfig.typescript = {}
@@ -375,6 +391,7 @@ export { defaultCartItemMatcher } from './collections/carts/operations/defaultCa
 export { mergeCart } from './collections/carts/operations/mergeCart.js'
 export { removeItem } from './collections/carts/operations/removeItem.js'
 export { updateItem } from './collections/carts/operations/updateItem.js'
+export { isNumericOperator } from './collections/carts/operations/types.js'
 export type {
   AddItemArgs,
   CartItemData,
@@ -382,7 +399,9 @@ export type {
   CartItemMatcherArgs,
   CartOperationResult,
   ClearCartArgs,
+  FieldWithOperator,
   NewCartItem,
+  NumericOperator,
   RemoveItemArgs,
   UpdateItemArgs,
 } from './collections/carts/operations/types.js'

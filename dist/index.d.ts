@@ -22,5 +22,6 @@ export { defaultCartItemMatcher } from './collections/carts/operations/defaultCa
 export { mergeCart } from './collections/carts/operations/mergeCart.js';
 export { removeItem } from './collections/carts/operations/removeItem.js';
 export { updateItem } from './collections/carts/operations/updateItem.js';
-export type { AddItemArgs, CartItemData, CartItemMatcher, CartItemMatcherArgs, CartOperationResult, ClearCartArgs, NewCartItem, RemoveItemArgs, UpdateItemArgs, } from './collections/carts/operations/types.js';
+export { isNumericOperator } from './collections/carts/operations/types.js';
+export type { AddItemArgs, CartItemData, CartItemMatcher, CartItemMatcherArgs, CartOperationResult, ClearCartArgs, FieldWithOperator, NewCartItem, NumericOperator, RemoveItemArgs, UpdateItemArgs, } from './collections/carts/operations/types.js';
 //# sourceMappingURL=index.d.ts.map

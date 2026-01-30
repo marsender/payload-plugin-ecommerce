@@ -1,4 +1,3 @@
-import { deepMergeSimple } from 'payload/shared';
 import { createAddressesCollection } from './collections/addresses/createAddressesCollection.js';
 import { createCartsCollection } from './collections/carts/createCartsCollection.js';
 import { createOrdersCollection } from './collections/orders/createOrdersCollection.js';
@@ -158,8 +157,10 @@ export const ecommercePlugin = (pluginConfig)=>async (incomingConfig)=>{
                             currenciesConfig,
                             ordersSlug: collectionSlugMap.orders,
                             paymentMethod,
+                            productsSlug: collectionSlugMap.products,
                             productsValidation,
-                            transactionsSlug: collectionSlugMap.transactions
+                            transactionsSlug: collectionSlugMap.transactions,
+                            variantsSlug: collectionSlugMap.variants ?? 'variants'
                         }),
                         method: 'post',
                         path: `${methodPath}/confirm-order`
@@ -205,13 +206,28 @@ export const ecommercePlugin = (pluginConfig)=>async (incomingConfig)=>{
             }) : defaultTransactionsCollection;
             incomingConfig.collections.push(transactionsCollection);
         }
-        if (!incomingConfig.i18n) {
+        /**
+     * Merge plugin translations
+     */ if (!incomingConfig.i18n) {
             incomingConfig.i18n = {};
         }
-        if (!incomingConfig.i18n?.translations) {
-            incomingConfig.i18n.translations = {};
-        }
-        incomingConfig.i18n.translations = deepMergeSimple(translations, incomingConfig.i18n?.translations);
+        Object.entries(translations).forEach(([locale, pluginI18nObject])=>{
+            const typedLocale = locale;
+            if (!incomingConfig.i18n.translations) {
+                incomingConfig.i18n.translations = {};
+            }
+            if (!(typedLocale in incomingConfig.i18n.translations)) {
+                incomingConfig.i18n.translations[typedLocale] = {};
+            }
+            if (!('plugin-ecommerce' in incomingConfig.i18n.translations[typedLocale])) {
+                ;
+                incomingConfig.i18n.translations[typedLocale]['plugin-ecommerce'] = {};
+            }
+            ;
+            incomingConfig.i18n.translations[typedLocale]['plugin-ecommerce'] = {
+                ...pluginI18nObject.translations['plugin-ecommerce']
+            };
+        });
         if (!incomingConfig.typescript) {
             incomingConfig.typescript = {};
         }
@@ -239,5 +255,6 @@ export { defaultCartItemMatcher } from './collections/carts/operations/defaultCa
 export { mergeCart } from './collections/carts/operations/mergeCart.js';
 export { removeItem } from './collections/carts/operations/removeItem.js';
 export { updateItem } from './collections/carts/operations/updateItem.js';
+export { isNumericOperator } from './collections/carts/operations/types.js';
 
 //# sourceMappingURL=index.js.map
