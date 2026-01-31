@@ -81,7 +81,8 @@ export const enTranslations = {
         variantsCollectionDescription: "Product variants allow you to offer different versions of a product, such as size or color variations. They refrence a product's variant options based on the variant types approved.",
         variantType: 'Variant Type',
         variantTypes: 'Variant Types',
-        variantTypesCollectionDescription: 'Variant types are used to define the different types of variants your products can have, such as size or color. Each variant type can have multiple options associated with it.'
+        variantTypesCollectionDescription: 'Variant types are used to define the different types of variants your products can have, such as size or color. Each variant type can have multiple options associated with it.',
+        tenant: 'Enterprise'
     }
 };
 export const en = {

@@ -83,6 +83,7 @@ export declare const enTranslations: {
         variantType: string;
         variantTypes: string;
         variantTypesCollectionDescription: string;
+        tenant: string;
     };
 };
 export declare const en: PluginLanguage;

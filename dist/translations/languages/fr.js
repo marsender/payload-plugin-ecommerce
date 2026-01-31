@@ -81,7 +81,8 @@ export const frTranslations = {
         variantsCollectionDescription: "Les variantes de produit vous permettent d'offrir différentes versions d'un produit, comme des variations de taille ou de couleur. Elles font référence aux options de variante d'un produit en fonction des types de variantes approuvés.",
         variantType: 'Type de variante',
         variantTypes: 'Types de variantes',
-        variantTypesCollectionDescription: 'Les types de variantes sont utilisés pour définir les différents types de variantes que vos produits peuvent avoir, comme la taille ou la couleur. Chaque type de variante peut avoir plusieurs options associées.'
+        variantTypesCollectionDescription: 'Les types de variantes sont utilisés pour définir les différents types de variantes que vos produits peuvent avoir, comme la taille ou la couleur. Chaque type de variante peut avoir plusieurs options associées.',
+        tenant: 'Entreprise'
     }
 };
 export const fr = {

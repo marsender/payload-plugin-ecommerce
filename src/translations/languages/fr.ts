@@ -10,8 +10,7 @@ export const frTranslations = {
     addressCompany: 'Entreprise',
     addressCountry: 'Pays',
     addresses: 'Adresses',
-    addressesCollectionDescription:
-      'Les adresses sont associées aux clients et utilisées pour préremplir les informations de livraison et de facturation lors des commandes.',
+    addressesCollectionDescription: 'Les adresses sont associées aux clients et utilisées pour préremplir les informations de livraison et de facturation lors des commandes.',
     addressFirstName: 'Prénom',
     addressLastName: 'Nom',
     addressLine1: 'Adresse 1',
@@ -27,8 +26,7 @@ export const frTranslations = {
     cancelled: 'Annulé',
     cart: 'Panier',
     carts: 'Paniers',
-    cartsCollectionDescription:
-      "Les paniers représentent la sélection de produits qu'un client a l'intention d'acheter. Ils sont liés à un client lorsque c'est possible et les utilisateurs invités n'ont pas de client associé.",
+    cartsCollectionDescription: "Les paniers représentent la sélection de produits qu'un client a l'intention d'acheter. Ils sont liés à un client lorsque c'est possible et les utilisateurs invités n'ont pas de client associé.",
     cartSecret: 'Secret du panier',
     completed: 'Terminé',
     currency: 'Devise',
@@ -47,8 +45,7 @@ export const frTranslations = {
     order: 'Commande',
     orderDetails: 'Détails de la commande',
     orders: 'Commandes',
-    ordersCollectionDescription:
-      "Les commandes représentent l'intention d'un client d'acheter des produits de votre boutique. Elles incluent des détails tels que les produits commandés, les quantités, les prix, les informations client et le statut de la commande.",
+    ordersCollectionDescription: "Les commandes représentent l'intention d'un client d'acheter des produits de votre boutique. Elles incluent des détails tels que les produits commandés, les quantités, les prix, les informations client et le statut de la commande.",
     paymentMethod: 'Méthode de paiement',
     paymentMethods: 'Méthodes de paiement',
     pending: 'En attente',
@@ -59,8 +56,7 @@ export const frTranslations = {
     priceSetInVariants: 'Prix défini dans les variantes.',
     processing: 'En cours',
     product: 'Produit',
-    productPriceDescription:
-      'Ce prix sera également utilisé pour trier et filtrer les produits. Si vous avez activé les variantes, vous pouvez entrer le prix le plus bas ou moyen pour aider à la recherche et au filtrage, mais ce prix ne sera pas utilisé lors du paiement.',
+    productPriceDescription: 'Ce prix sera également utilisé pour trier et filtrer les produits. Si vous avez activé les variantes, vous pouvez entrer le prix le plus bas ou moyen pour aider à la recherche et au filtrage, mais ce prix ne sera pas utilisé lors du paiement.',
     productRequired: 'Un produit est requis.',
     products: 'Produits',
     purchased: 'Acheté',
@@ -75,24 +71,20 @@ export const frTranslations = {
     transaction: 'Transaction',
     transactionDetails: 'Détails de la transaction',
     transactions: 'Transactions',
-    transactionsCollectionDescription:
-      'Les transactions représentent les tentatives de paiement effectuées pour une commande. Une commande peut avoir plusieurs transactions associées, comme une tentative de paiement initiale et des remboursements ou ajustements ultérieurs.',
+    transactionsCollectionDescription: 'Les transactions représentent les tentatives de paiement effectuées pour une commande. Une commande peut avoir plusieurs transactions associées, comme une tentative de paiement initiale et des remboursements ou ajustements ultérieurs.',
     variant: 'Variante',
     variantOption: 'Option de variante',
     variantOptions: 'Options de variante',
-    variantOptionsAlreadyExists:
-      'Cette combinaison de variantes est déjà utilisée par une autre variante. Veuillez sélectionner des options différentes.',
-    variantOptionsCollectionDescription:
-      "Les options de variante définissent les options qu'un type de variante peut avoir, comme rouge ou blanc pour les couleurs.",
+    variantOptionsAlreadyExists: 'Cette combinaison de variantes est déjà utilisée par une autre variante. Veuillez sélectionner des options différentes.',
+    variantOptionsCollectionDescription: "Les options de variante définissent les options qu'un type de variante peut avoir, comme rouge ou blanc pour les couleurs.",
     variantOptionsRequired: 'Les options de variante sont requises.',
     variantOptionsRequiredAll: 'Toutes les options de variante sont requises.',
     variants: 'Variantes',
-    variantsCollectionDescription:
-      "Les variantes de produit vous permettent d'offrir différentes versions d'un produit, comme des variations de taille ou de couleur. Elles font référence aux options de variante d'un produit en fonction des types de variantes approuvés.",
+    variantsCollectionDescription: "Les variantes de produit vous permettent d'offrir différentes versions d'un produit, comme des variations de taille ou de couleur. Elles font référence aux options de variante d'un produit en fonction des types de variantes approuvés.",
     variantType: 'Type de variante',
     variantTypes: 'Types de variantes',
-    variantTypesCollectionDescription:
-      'Les types de variantes sont utilisés pour définir les différents types de variantes que vos produits peuvent avoir, comme la taille ou la couleur. Chaque type de variante peut avoir plusieurs options associées.',
+    variantTypesCollectionDescription: 'Les types de variantes sont utilisés pour définir les différents types de variantes que vos produits peuvent avoir, comme la taille ou la couleur. Chaque type de variante peut avoir plusieurs options associées.',
+    tenant: 'Entreprise',
   },
 }
 

@@ -10,8 +10,7 @@ export const enTranslations = {
     addressCompany: 'Company',
     addressCountry: 'Country',
     addresses: 'Addresses',
-    addressesCollectionDescription:
-      'Addresses are associated with customers are used to prefill shipping and billing when placing orders.',
+    addressesCollectionDescription: 'Addresses are associated with customers are used to prefill shipping and billing when placing orders.',
     addressFirstName: 'First name',
     addressLastName: 'Last name',
     addressLine1: 'Address 1',
@@ -27,8 +26,7 @@ export const enTranslations = {
     cancelled: 'Cancelled',
     cart: 'Cart',
     carts: 'Carts',
-    cartsCollectionDescription:
-      "Carts represent a customer's selection of products they intend to purchase. They are related to a customer where possible and guest users do not have a customer attached.",
+    cartsCollectionDescription: "Carts represent a customer's selection of products they intend to purchase. They are related to a customer where possible and guest users do not have a customer attached.",
     cartSecret: 'Cart Secret',
     completed: 'Completed',
     currency: 'Currency',
@@ -47,8 +45,7 @@ export const enTranslations = {
     order: 'Order',
     orderDetails: 'Order Details',
     orders: 'Orders',
-    ordersCollectionDescription:
-      "Orders represent a customer's intent to purchase products from your store. They include details such as the products ordered, quantities, prices, customer information, and order status.",
+    ordersCollectionDescription: "Orders represent a customer's intent to purchase products from your store. They include details such as the products ordered, quantities, prices, customer information, and order status.",
     paymentMethod: 'Payment method',
     paymentMethods: 'Payment methods',
     pending: 'Pending',
@@ -59,8 +56,7 @@ export const enTranslations = {
     priceSetInVariants: 'Price set in variants.',
     processing: 'Processing',
     product: 'Product',
-    productPriceDescription:
-      'This price will also be used for sorting and filtering products. If you have variants enabled then you can enter the lowest or average price to help with search and filtering, but this price will not be used for checkout.',
+    productPriceDescription: 'This price will also be used for sorting and filtering products. If you have variants enabled then you can enter the lowest or average price to help with search and filtering, but this price will not be used for checkout.',
     productRequired: 'A product is required.',
     products: 'Products',
     purchased: 'Purchased',
@@ -75,24 +71,20 @@ export const enTranslations = {
     transaction: 'Transaction',
     transactionDetails: 'Transaction Details',
     transactions: 'Transactions',
-    transactionsCollectionDescription:
-      'Transactions represent payment attempts made for an order. An order can have multiple transactions associated with it, such as an initial payment attempt and subsequent refunds or adjustments.',
+    transactionsCollectionDescription: 'Transactions represent payment attempts made for an order. An order can have multiple transactions associated with it, such as an initial payment attempt and subsequent refunds or adjustments.',
     variant: 'Variant',
     variantOption: 'Variant Option',
     variantOptions: 'Variant Options',
-    variantOptionsAlreadyExists:
-      'This variant combo is already in use by another variant. Please select different options.',
-    variantOptionsCollectionDescription:
-      'Variant options define the options a variant type can have, such as red or white for colors.',
+    variantOptionsAlreadyExists: 'This variant combo is already in use by another variant. Please select different options.',
+    variantOptionsCollectionDescription: 'Variant options define the options a variant type can have, such as red or white for colors.',
     variantOptionsRequired: 'Variant options are required.',
     variantOptionsRequiredAll: 'All variant options are required.',
     variants: 'Variants',
-    variantsCollectionDescription:
-      "Product variants allow you to offer different versions of a product, such as size or color variations. They refrence a product's variant options based on the variant types approved.",
+    variantsCollectionDescription: "Product variants allow you to offer different versions of a product, such as size or color variations. They refrence a product's variant options based on the variant types approved.",
     variantType: 'Variant Type',
     variantTypes: 'Variant Types',
-    variantTypesCollectionDescription:
-      'Variant types are used to define the different types of variants your products can have, such as size or color. Each variant type can have multiple options associated with it.',
+    variantTypesCollectionDescription: 'Variant types are used to define the different types of variants your products can have, such as size or color. Each variant type can have multiple options associated with it.',
+    tenant: 'Enterprise',
   },
 }
 
