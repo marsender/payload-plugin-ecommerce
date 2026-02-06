@@ -17,6 +17,9 @@ export const validateOptions = (props)=>async (values, { data, req })=>{
             joins: {
                 variants: {
                     where: {
+                        deletedAt: {
+                            exists: false
+                        },
                         ...data.id && {
                             id: {
                                 not_equals: data.id
