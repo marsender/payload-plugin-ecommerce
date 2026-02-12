@@ -2,7 +2,7 @@
 
 import type { SelectFieldClient } from 'payload'
 
-import { FieldLabel, ReactSelect, useField, useForm } from '@payloadcms/ui'
+import { FieldLabel, ReactSelect, useField } from '@payloadcms/ui'
 import { useCallback, useId, useMemo } from 'react'
 
 type Props = {
