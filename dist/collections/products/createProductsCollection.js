@@ -2,7 +2,7 @@ import { inventoryField } from '../../fields/inventoryField.js';
 import { pricesField } from '../../fields/pricesField.js';
 import { variantsFields } from '../../fields/variantsFields.js';
 export const createProductsCollection = (props)=>{
-    const { access, currenciesConfig, enableVariants = false, inventory = true, variantsSlug = 'variants', variantTypesSlug = 'variantTypes' } = props || {};
+    const { access, currenciesConfig, enableVariants = false, inventory = true, multiTenant, variantsSlug = 'variants', variantTypesSlug = 'variantTypes' } = props || {};
     const fields = [
         ...inventory ? [
             inventoryField({
@@ -14,6 +14,7 @@ export const createProductsCollection = (props)=>{
             })
         ] : [],
         ...enableVariants ? variantsFields({
+            multiTenant,
             variantsSlug,
             variantTypesSlug
         }) : [],

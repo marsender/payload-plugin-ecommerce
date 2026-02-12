@@ -1,4 +1,16 @@
-export const variantsFields = ({ variantsSlug = 'variants', variantTypesSlug = 'variantTypes' })=>{
+export const variantsFields = ({ multiTenant, variantsSlug = 'variants', variantTypesSlug = 'variantTypes' })=>{
+    // Filter variant types by tenant when multi-tenant is enabled
+    const tenantFilterOptions = multiTenant?.enabled ? ({ data })=>{
+        const tenantId = typeof data?.tenant === 'object' ? data?.tenant?.id : data?.tenant;
+        if (tenantId) {
+            return {
+                tenant: {
+                    equals: tenantId
+                }
+            };
+        }
+        return true;
+    } : undefined;
     const fields = [
         {
             name: 'enableVariants',
@@ -11,6 +23,9 @@ export const variantsFields = ({ variantsSlug = 'variants', variantTypesSlug = '
             type: 'relationship',
             admin: {
                 condition: ({ enableVariants })=>Boolean(enableVariants)
+            },
+            ...tenantFilterOptions && {
+                filterOptions: tenantFilterOptions
             },
             hasMany: true,
             label: ({ t })=>// @ts-expect-error - translations are not typed in plugins yet

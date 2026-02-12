@@ -1,6 +1,14 @@
-import type { Field } from 'payload'
+import type { Field, FilterOptionsProps } from 'payload'
 
 type Props = {
+  /**
+   * Multi-tenant configuration for variants.
+   * When enabled, the variantTypes relationship will be filtered by the product's tenant.
+   */
+  multiTenant?: {
+    enabled: boolean
+    tenantsSlug?: string
+  }
   /**
    * Slug of the variants collection, defaults to 'variants'.
    */
@@ -12,9 +20,21 @@ type Props = {
 }
 
 export const variantsFields: (props: Props) => Field[] = ({
+  multiTenant,
   variantsSlug = 'variants',
   variantTypesSlug = 'variantTypes',
 }) => {
+  // Filter variant types by tenant when multi-tenant is enabled
+  const tenantFilterOptions = multiTenant?.enabled
+    ? ({ data }: FilterOptionsProps) => {
+        const tenantId = typeof data?.tenant === 'object' ? data?.tenant?.id : data?.tenant
+        if (tenantId) {
+          return { tenant: { equals: tenantId } }
+        }
+        return true
+      }
+    : undefined
+
   const fields: Field[] = [
     {
       name: 'enableVariants',
@@ -29,6 +49,7 @@ export const variantsFields: (props: Props) => Field[] = ({
       admin: {
         condition: ({ enableVariants }) => Boolean(enableVariants),
       },
+      ...(tenantFilterOptions && { filterOptions: tenantFilterOptions }),
       hasMany: true,
       label: ({ t }) =>
         // @ts-expect-error - translations are not typed in plugins yet

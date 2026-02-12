@@ -53,12 +53,13 @@ export const ecommercePlugin = (pluginConfig)=>async (incomingConfig)=>{
             incomingConfig.collections.push(addressesCollection);
         }
         if (productsConfig) {
+            // Compute variantsMultiTenant outside the variants block so it's accessible by createProductsCollection
+            const variantsConfig = typeof productsConfig.variants === 'boolean' ? undefined : productsConfig.variants;
+            // Get carts config for fallback multiTenant setting (same pattern as transactions)
+            const cartsConfig = typeof sanitizedPluginConfig.carts === 'object' ? sanitizedPluginConfig.carts : {};
+            // Use variants.multiTenant if specified, otherwise fall back to carts.multiTenant
+            const variantsMultiTenant = variantsConfig?.multiTenant ?? cartsConfig.multiTenant;
             if (productsConfig.variants) {
-                const variantsConfig = typeof productsConfig.variants === 'boolean' ? undefined : productsConfig.variants;
-                // Get carts config for fallback multiTenant setting (same pattern as transactions)
-                const cartsConfig = typeof sanitizedPluginConfig.carts === 'object' ? sanitizedPluginConfig.carts : {};
-                // Use variants.multiTenant if specified, otherwise fall back to carts.multiTenant
-                const variantsMultiTenant = variantsConfig?.multiTenant ?? cartsConfig.multiTenant;
                 const defaultVariantsCollection = createVariantsCollection({
                     access: accessConfig,
                     currenciesConfig,
@@ -94,6 +95,7 @@ export const ecommercePlugin = (pluginConfig)=>async (incomingConfig)=>{
                 currenciesConfig,
                 enableVariants,
                 inventory: sanitizedPluginConfig.inventory,
+                multiTenant: variantsMultiTenant,
                 variantsSlug: collectionSlugMap.variants,
                 variantTypesSlug: collectionSlugMap.variantTypes
             });
