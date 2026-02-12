@@ -2,8 +2,20 @@ import type { CollectionConfig, Field } from 'payload'
 
 import type { AccessConfig } from '../../types/index.js'
 
+import { populateTenant } from '../../utilities/populateTenant.js'
+import { tenantBaseListFilter } from '../../utilities/tenantBaseListFilter.js'
+import { hasTenantAccess } from '../carts/cartTenantAccess.js'
+
 type Props = {
   access: Pick<AccessConfig, 'isAdmin' | 'publicAccess'>
+  /**
+   * Multi-tenant configuration for variant options.
+   * When enabled, variant options will have a tenant field and access will be scoped by tenant for admins.
+   */
+  multiTenant?: {
+    enabled: boolean
+    tenantsSlug?: string
+  }
   /**
    * Slug of the variant types collection, defaults to 'variantTypes'.
    */
@@ -11,9 +23,29 @@ type Props = {
 }
 
 export const createVariantOptionsCollection: (props: Props) => CollectionConfig = (props) => {
-  const { access, variantTypesSlug = 'variantTypes' } = props || {}
+  const { access, multiTenant, variantTypesSlug = 'variantTypes' } = props || {}
+
+  const tenantsSlug = multiTenant?.tenantsSlug || 'tenants'
 
   const fields: Field[] = [
+    // Tenant field (only added when multiTenant is enabled)
+    ...(multiTenant?.enabled
+      ? [
+          {
+            name: 'tenant',
+            type: 'relationship',
+            admin: {
+              position: 'sidebar',
+              readOnly: true,
+            },
+            index: true,
+            label: ({ t }: { t: (key: string) => string }) =>
+              t('plugin-ecommerce:tenant') || 'Tenant',
+            relationTo: tenantsSlug,
+            required: false,
+          } as Field,
+        ]
+      : []),
     {
       name: 'variantType',
       type: 'relationship',
@@ -38,19 +70,32 @@ export const createVariantOptionsCollection: (props: Props) => CollectionConfig 
     },
   ]
 
+  // Admin access: when multiTenant is enabled, use tenant-scoped access; otherwise use isAdmin
+  const adminAccess = multiTenant?.enabled
+    ? hasTenantAccess({ isAdmin: access.isAdmin })
+    : access.isAdmin
+
   const baseConfig: CollectionConfig = {
     slug: 'variantOptions',
     access: {
-      create: access.isAdmin,
-      delete: access.isAdmin,
+      create: adminAccess,
+      delete: adminAccess,
       read: access.publicAccess,
-      update: access.isAdmin,
+      update: adminAccess,
     },
     admin: {
       group: false,
       useAsTitle: 'label',
+      ...(multiTenant?.enabled && {
+        baseListFilter: tenantBaseListFilter(),
+      }),
     },
     fields,
+    hooks: {
+      ...(multiTenant?.enabled && {
+        beforeChange: [populateTenant({ tenantsSlug })],
+      }),
+    },
     labels: {
       plural: ({ t }) =>
         // @ts-expect-error - translations are not typed in plugins yet

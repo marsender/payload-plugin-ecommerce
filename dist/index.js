@@ -55,10 +55,15 @@ export const ecommercePlugin = (pluginConfig)=>async (incomingConfig)=>{
         if (productsConfig) {
             if (productsConfig.variants) {
                 const variantsConfig = typeof productsConfig.variants === 'boolean' ? undefined : productsConfig.variants;
+                // Get carts config for fallback multiTenant setting (same pattern as transactions)
+                const cartsConfig = typeof sanitizedPluginConfig.carts === 'object' ? sanitizedPluginConfig.carts : {};
+                // Use variants.multiTenant if specified, otherwise fall back to carts.multiTenant
+                const variantsMultiTenant = variantsConfig?.multiTenant ?? cartsConfig.multiTenant;
                 const defaultVariantsCollection = createVariantsCollection({
                     access: accessConfig,
                     currenciesConfig,
                     inventory: sanitizedPluginConfig.inventory,
+                    multiTenant: variantsMultiTenant,
                     productsSlug: collectionSlugMap.products,
                     variantOptionsSlug: collectionSlugMap.variantOptions ?? 'variantOptions',
                     variantTypesSlug: collectionSlugMap.variantTypes ?? 'variantTypes'
@@ -68,6 +73,7 @@ export const ecommercePlugin = (pluginConfig)=>async (incomingConfig)=>{
                 }) : defaultVariantsCollection;
                 const defaultVariantTypesCollection = createVariantTypesCollection({
                     access: accessConfig,
+                    multiTenant: variantsMultiTenant,
                     variantOptionsSlug: collectionSlugMap.variantOptions ?? 'variantOptions'
                 });
                 const variantTypes = variantsConfig && typeof variantsConfig === 'object' && 'variantTypesCollectionOverride' in variantsConfig && variantsConfig.variantTypesCollectionOverride ? await variantsConfig.variantTypesCollectionOverride({
@@ -75,6 +81,7 @@ export const ecommercePlugin = (pluginConfig)=>async (incomingConfig)=>{
                 }) : defaultVariantTypesCollection;
                 const defaultVariantOptionsCollection = createVariantOptionsCollection({
                     access: accessConfig,
+                    multiTenant: variantsMultiTenant,
                     variantTypesSlug: collectionSlugMap.variantTypes ?? 'variantTypes'
                 });
                 const variantOptions = variantsConfig && typeof variantsConfig === 'object' && 'variantOptionsCollectionOverride' in variantsConfig && variantsConfig.variantOptionsCollectionOverride ? await variantsConfig.variantOptionsCollectionOverride({

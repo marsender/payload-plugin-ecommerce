@@ -86,10 +86,18 @@ export const ecommercePlugin =
         const variantsConfig =
           typeof productsConfig.variants === 'boolean' ? undefined : productsConfig.variants
 
+        // Get carts config for fallback multiTenant setting (same pattern as transactions)
+        const cartsConfig =
+          typeof sanitizedPluginConfig.carts === 'object' ? sanitizedPluginConfig.carts : {}
+
+        // Use variants.multiTenant if specified, otherwise fall back to carts.multiTenant
+        const variantsMultiTenant = variantsConfig?.multiTenant ?? cartsConfig.multiTenant
+
         const defaultVariantsCollection = createVariantsCollection({
           access: accessConfig,
           currenciesConfig,
           inventory: sanitizedPluginConfig.inventory,
+          multiTenant: variantsMultiTenant,
           productsSlug: collectionSlugMap.products,
           variantOptionsSlug: collectionSlugMap.variantOptions ?? 'variantOptions',
           variantTypesSlug: collectionSlugMap.variantTypes ?? 'variantTypes',
@@ -107,6 +115,7 @@ export const ecommercePlugin =
 
         const defaultVariantTypesCollection = createVariantTypesCollection({
           access: accessConfig,
+          multiTenant: variantsMultiTenant,
           variantOptionsSlug: collectionSlugMap.variantOptions ?? 'variantOptions',
         })
 
@@ -122,6 +131,7 @@ export const ecommercePlugin =
 
         const defaultVariantOptionsCollection = createVariantOptionsCollection({
           access: accessConfig,
+          multiTenant: variantsMultiTenant,
           variantTypesSlug: collectionSlugMap.variantTypes ?? 'variantTypes',
         })
 

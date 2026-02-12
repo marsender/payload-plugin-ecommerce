@@ -4,6 +4,9 @@ import type { AccessConfig, CurrenciesConfig, InventoryConfig } from '../../../t
 
 import { inventoryField } from '../../../fields/inventoryField.js'
 import { pricesField } from '../../../fields/pricesField.js'
+import { populateTenant } from '../../../utilities/populateTenant.js'
+import { tenantBaseListFilter } from '../../../utilities/tenantBaseListFilter.js'
+import { hasTenantAccess } from '../../carts/cartTenantAccess.js'
 import { variantsCollectionBeforeChange as beforeChange } from './hooks/beforeChange.js'
 import { validateOptions } from './hooks/validateOptions.js'
 
@@ -14,6 +17,14 @@ type Props = {
    * Enables inventory tracking for variants. Defaults to true.
    */
   inventory?: boolean | InventoryConfig
+  /**
+   * Multi-tenant configuration for variants.
+   * When enabled, variants will have a tenant field and access will be scoped by tenant for admins.
+   */
+  multiTenant?: {
+    enabled: boolean
+    tenantsSlug?: string
+  }
   /**
    * Slug of the products collection, defaults to 'products'.
    */
@@ -33,13 +44,34 @@ export const createVariantsCollection: (props: Props) => CollectionConfig = (pro
     access,
     currenciesConfig,
     inventory = true,
+    multiTenant,
     productsSlug = 'products',
     variantOptionsSlug = 'variantOptions',
     variantTypesSlug = 'variantTypes',
   } = props || {}
   const { supportedCurrencies } = currenciesConfig || {}
 
+  const tenantsSlug = multiTenant?.tenantsSlug || 'tenants'
+
   const fields: Field[] = [
+    // Tenant field (only added when multiTenant is enabled)
+    ...(multiTenant?.enabled
+      ? [
+          {
+            name: 'tenant',
+            type: 'relationship',
+            admin: {
+              position: 'sidebar',
+              readOnly: true,
+            },
+            index: true,
+            label: ({ t }: { t: (key: string) => string }) =>
+              t('plugin-ecommerce:tenant') || 'Tenant',
+            relationTo: tenantsSlug,
+            required: false,
+          } as Field,
+        ]
+      : []),
     {
       name: 'title',
       type: 'text',
@@ -98,13 +130,18 @@ export const createVariantsCollection: (props: Props) => CollectionConfig = (pro
     }
   }
 
+  // Admin access: when multiTenant is enabled, use tenant-scoped access; otherwise use isAdmin
+  const adminAccess = multiTenant?.enabled
+    ? hasTenantAccess({ isAdmin: access.isAdmin })
+    : access.isAdmin
+
   const baseConfig: CollectionConfig = {
     slug: 'variants',
     access: {
-      create: access.isAdmin,
-      delete: access.isAdmin,
+      create: adminAccess,
+      delete: adminAccess,
       read: access.adminOrPublishedStatus,
-      update: access.isAdmin,
+      update: adminAccess,
     },
     admin: {
       description: ({ t }) =>
@@ -112,10 +149,16 @@ export const createVariantsCollection: (props: Props) => CollectionConfig = (pro
         t('plugin-ecommerce:variantsCollectionDescription'),
       group: false,
       useAsTitle: 'title',
+      ...(multiTenant?.enabled && {
+        baseListFilter: tenantBaseListFilter(),
+      }),
     },
     fields,
     hooks: {
-      beforeChange: [beforeChange({ productsSlug, variantOptionsSlug })],
+      beforeChange: [
+        ...(multiTenant?.enabled ? [populateTenant({ tenantsSlug })] : []),
+        beforeChange({ productsSlug, variantOptionsSlug }),
+      ],
     },
     labels: {
       plural: ({ t }) =>

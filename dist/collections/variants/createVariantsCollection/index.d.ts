@@ -8,6 +8,14 @@ type Props = {
      */
     inventory?: boolean | InventoryConfig;
     /**
+     * Multi-tenant configuration for variants.
+     * When enabled, variants will have a tenant field and access will be scoped by tenant for admins.
+     */
+    multiTenant?: {
+        enabled: boolean;
+        tenantsSlug?: string;
+    };
+    /**
      * Slug of the products collection, defaults to 'products'.
      */
     productsSlug?: string;

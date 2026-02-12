@@ -1,6 +1,25 @@
+import { populateTenant } from '../../utilities/populateTenant.js';
+import { tenantBaseListFilter } from '../../utilities/tenantBaseListFilter.js';
+import { hasTenantAccess } from '../carts/cartTenantAccess.js';
 export const createVariantOptionsCollection = (props)=>{
-    const { access, variantTypesSlug = 'variantTypes' } = props || {};
+    const { access, multiTenant, variantTypesSlug = 'variantTypes' } = props || {};
+    const tenantsSlug = multiTenant?.tenantsSlug || 'tenants';
     const fields = [
+        // Tenant field (only added when multiTenant is enabled)
+        ...multiTenant?.enabled ? [
+            {
+                name: 'tenant',
+                type: 'relationship',
+                admin: {
+                    position: 'sidebar',
+                    readOnly: true
+                },
+                index: true,
+                label: ({ t })=>t('plugin-ecommerce:tenant') || 'Tenant',
+                relationTo: tenantsSlug,
+                required: false
+            }
+        ] : [],
         {
             name: 'variantType',
             type: 'relationship',
@@ -24,19 +43,35 @@ export const createVariantOptionsCollection = (props)=>{
             required: true
         }
     ];
+    // Admin access: when multiTenant is enabled, use tenant-scoped access; otherwise use isAdmin
+    const adminAccess = multiTenant?.enabled ? hasTenantAccess({
+        isAdmin: access.isAdmin
+    }) : access.isAdmin;
     const baseConfig = {
         slug: 'variantOptions',
         access: {
-            create: access.isAdmin,
-            delete: access.isAdmin,
+            create: adminAccess,
+            delete: adminAccess,
             read: access.publicAccess,
-            update: access.isAdmin
+            update: adminAccess
         },
         admin: {
             group: false,
-            useAsTitle: 'label'
+            useAsTitle: 'label',
+            ...multiTenant?.enabled && {
+                baseListFilter: tenantBaseListFilter()
+            }
         },
         fields,
+        hooks: {
+            ...multiTenant?.enabled && {
+                beforeChange: [
+                    populateTenant({
+                        tenantsSlug
+                    })
+                ]
+            }
+        },
         labels: {
             plural: ({ t })=>// @ts-expect-error - translations are not typed in plugins yet
                 t('plugin-ecommerce:variantOptions'),
