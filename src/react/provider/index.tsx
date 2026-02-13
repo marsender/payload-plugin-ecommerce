@@ -249,7 +249,7 @@ export const EcommerceProvider: React.FC<ContextProps> = ({
     [baseAPIURL, cartQuery, cartsSlug],
   )
 
-  const updateCart = useCallback(
+  const _updateCart = useCallback(
     async (cartID: DefaultDocumentIDType, data: Partial<CartsCollection>) => {
       // Build query params with secret if provided
       const queryParams = {
@@ -279,7 +279,7 @@ export const EcommerceProvider: React.FC<ContextProps> = ({
     [baseAPIURL, cartQuery, cartsSlug, cartSecret],
   )
 
-  const deleteCart = useCallback(
+  const _deleteCart = useCallback(
     async (cartID: DefaultDocumentIDType) => {
       // Build query params with secret if provided
       const queryParams = cartSecret ? { secret: cartSecret } : {}
@@ -767,7 +767,7 @@ export const EcommerceProvider: React.FC<ContextProps> = ({
           setCartID(userCartID)
         }
       }
-    } catch (error) {
+    } catch (_error) {
       // User is not logged in, clear cart state for authenticated user
       setUser(null)
       // Don't clear cart - keep localStorage cart for guest

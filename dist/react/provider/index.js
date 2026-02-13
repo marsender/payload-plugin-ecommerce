@@ -191,7 +191,7 @@ export const EcommerceProvider = ({ addressesSlug = 'addresses', api, cartsSlug 
         cartQuery,
         cartsSlug
     ]);
-    const updateCart = useCallback(async (cartID, data)=>{
+    const _updateCart = useCallback(async (cartID, data)=>{
         // Build query params with secret if provided
         const queryParams = {
             ...cartQuery,
@@ -220,7 +220,7 @@ export const EcommerceProvider = ({ addressesSlug = 'addresses', api, cartsSlug 
         cartsSlug,
         cartSecret
     ]);
-    const deleteCart = useCallback(async (cartID)=>{
+    const _deleteCart = useCallback(async (cartID)=>{
         // Build query params with secret if provided
         const queryParams = cartSecret ? {
             secret: cartSecret
@@ -698,7 +698,7 @@ export const EcommerceProvider = ({ addressesSlug = 'addresses', api, cartsSlug 
                     setCartID(userCartID);
                 }
             }
-        } catch (error) {
+        } catch (_error) {
             // User is not logged in, clear cart state for authenticated user
             setUser(null);
         // Don't clear cart - keep localStorage cart for guest
