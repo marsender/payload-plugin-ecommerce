@@ -1,6 +1,7 @@
 import { inventoryField } from '../../fields/inventoryField.js';
 import { pricesField } from '../../fields/pricesField.js';
 import { variantsFields } from '../../fields/variantsFields.js';
+import { deleteVariantsAfterProductDelete } from './hooks/afterDelete.js';
 export const createProductsCollection = (props)=>{
     const { access, currenciesConfig, enableVariants = false, inventory = true, multiTenant, variantsSlug = 'variants', variantTypesSlug = 'variantTypes' } = props || {};
     const fields = [
@@ -44,6 +45,13 @@ export const createProductsCollection = (props)=>{
             group: 'Ecommerce'
         },
         fields,
+        hooks: {
+            afterDelete: [
+                deleteVariantsAfterProductDelete({
+                    variantsSlug
+                })
+            ]
+        },
         labels: {
             plural: ({ t })=>// @ts-expect-error - translations are not typed in plugins yet
                 t('plugin-ecommerce:products'),

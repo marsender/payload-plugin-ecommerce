@@ -1,0 +1,1 @@
+{"version":3,"file":"afterDelete.d.ts","sourceRoot":"","sources":["../../../../src/collections/products/hooks/afterDelete.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,yBAAyB,EAAE,MAAM,SAAS,CAAA;AAExD,KAAK,KAAK,GAAG;IACX,YAAY,EAAE,MAAM,CAAA;CACrB,CAAA;AAED,eAAO,MAAM,gCAAgC,EAAE,CAAC,IAAI,EAAE,KAAK,KAAK,yBAwB7D,CAAA"}
