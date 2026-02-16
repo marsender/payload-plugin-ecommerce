@@ -1,4 +1,4 @@
-export const deleteVariantsAfterProductDelete = ({ variantsSlug })=>async ({ id, req })=>{
+export const deleteVariantsBeforeProductDelete = ({ variantsSlug })=>async ({ id, req })=>{
         const { docs: variants } = await req.payload.find({
             collection: variantsSlug,
             depth: 0,
@@ -17,4 +17,4 @@ export const deleteVariantsAfterProductDelete = ({ variantsSlug })=>async ({ id,
             })));
     };
 
-//# sourceMappingURL=afterDelete.js.map
+//# sourceMappingURL=beforeDelete.js.map

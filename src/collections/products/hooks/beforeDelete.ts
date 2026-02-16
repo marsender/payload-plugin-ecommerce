@@ -1,10 +1,10 @@
-import type { CollectionAfterDeleteHook } from 'payload'
+import type { CollectionBeforeDeleteHook } from 'payload'
 
 type Props = {
   variantsSlug: string
 }
 
-export const deleteVariantsAfterProductDelete: (args: Props) => CollectionAfterDeleteHook =
+export const deleteVariantsBeforeProductDelete: (args: Props) => CollectionBeforeDeleteHook =
   ({ variantsSlug }) =>
   async ({ id, req }) => {
     const { docs: variants } = await req.payload.find({

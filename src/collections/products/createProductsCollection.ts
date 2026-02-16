@@ -5,7 +5,7 @@ import type { AccessConfig, CurrenciesConfig, InventoryConfig } from '../../type
 import { inventoryField } from '../../fields/inventoryField.js'
 import { pricesField } from '../../fields/pricesField.js'
 import { variantsFields } from '../../fields/variantsFields.js'
-import { deleteVariantsAfterProductDelete } from './hooks/afterDelete.js'
+import { deleteVariantsBeforeProductDelete } from './hooks/beforeDelete.js'
 
 type Props = {
   access: Pick<AccessConfig, 'adminOrPublishedStatus' | 'isAdmin'>
@@ -78,7 +78,7 @@ export const createProductsCollection: (props: Props) => CollectionConfig = (pro
     },
     fields,
     hooks: {
-      afterDelete: [deleteVariantsAfterProductDelete({ variantsSlug })],
+      beforeDelete: [deleteVariantsBeforeProductDelete({ variantsSlug })],
     },
     labels: {
       plural: ({ t }) =>

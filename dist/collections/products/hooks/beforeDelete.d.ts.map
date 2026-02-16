@@ -1,0 +1,1 @@
+{"version":3,"file":"beforeDelete.d.ts","sourceRoot":"","sources":["../../../../src/collections/products/hooks/beforeDelete.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,0BAA0B,EAAE,MAAM,SAAS,CAAA;AAEzD,KAAK,KAAK,GAAG;IACX,YAAY,EAAE,MAAM,CAAA;CACrB,CAAA;AAED,eAAO,MAAM,iCAAiC,EAAE,CAAC,IAAI,EAAE,KAAK,KAAK,0BAwB9D,CAAA"}

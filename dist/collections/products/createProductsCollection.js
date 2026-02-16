@@ -1,7 +1,7 @@
 import { inventoryField } from '../../fields/inventoryField.js';
 import { pricesField } from '../../fields/pricesField.js';
 import { variantsFields } from '../../fields/variantsFields.js';
-import { deleteVariantsAfterProductDelete } from './hooks/afterDelete.js';
+import { deleteVariantsBeforeProductDelete } from './hooks/beforeDelete.js';
 export const createProductsCollection = (props)=>{
     const { access, currenciesConfig, enableVariants = false, inventory = true, multiTenant, variantsSlug = 'variants', variantTypesSlug = 'variantTypes' } = props || {};
     const fields = [
@@ -46,8 +46,8 @@ export const createProductsCollection = (props)=>{
         },
         fields,
         hooks: {
-            afterDelete: [
-                deleteVariantsAfterProductDelete({
+            beforeDelete: [
+                deleteVariantsBeforeProductDelete({
                     variantsSlug
                 })
             ]
