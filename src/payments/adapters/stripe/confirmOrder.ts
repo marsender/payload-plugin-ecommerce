@@ -135,5 +135,6 @@ export const confirmOrder: (props: Props) => NonNullable<PaymentAdapter>['confir
 			message: 'Payment initiated successfully',
 			orderID: order.id,
 			transactionID: transaction.id,
+			...(order.accessToken ? { accessToken: order.accessToken } : {}),
 		}
 	}

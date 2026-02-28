@@ -108,7 +108,10 @@ export const confirmOrder = (props)=>async ({ data, ordersSlug = 'orders', req, 
         return {
             message: 'Payment initiated successfully',
             orderID: order.id,
-            transactionID: transaction.id
+            transactionID: transaction.id,
+            ...order.accessToken ? {
+                accessToken: order.accessToken
+            } : {}
         };
     };
 
