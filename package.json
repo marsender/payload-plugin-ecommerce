@@ -74,17 +74,17 @@
     "qs-esm": "7.0.3"
   },
   "devDependencies": {
-    "@swc/cli": "^0.7.9",
-    "@swc/core": "^1.15.8",
+    "@swc/cli": "^0.7.10",
+    "@swc/core": "^1.15.18",
     "@types/json-schema": "^7.0.15",
-    "@types/node": "^25.0.6",
-    "@types/react": "^19.2.8",
+    "@types/node": "^25.3.3",
+    "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "eslint": "^9.39.2",
+    "eslint": "^9.39.3",
     "jiti": "^2.6.1",
-    "rimraf": "^6.1.2",
+    "rimraf": "^6.1.3",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.53.0"
+    "typescript-eslint": "^8.56.1"
   },
   "peerDependencies": {
     "@payloadcms/translations": "^3.0.0",
