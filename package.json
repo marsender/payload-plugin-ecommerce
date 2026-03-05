@@ -68,7 +68,8 @@
     "copyfiles": "rsync -a --include='*/' --include='*.html' --include='*.css' --include='*.scss' --include='*.ttf' --include='*.woff' --include='*.woff2' --include='*.eot' --include='*.svg' --include='*.jpg' --include='*.png' --include='*.json' --exclude='*' src/ dist/",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "prepare": "husky"
   },
   "dependencies": {
     "qs-esm": "7.0.3"
@@ -81,6 +82,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "eslint": "^9.39.3",
+    "husky": "^9.1.7",
     "jiti": "^2.6.1",
     "rimraf": "^6.1.3",
     "typescript": "^5.9.3",
