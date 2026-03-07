@@ -101,6 +101,8 @@ export const initiatePaymentHandler: InitiatePayment =
 						customerEmail: true,
 						items: true,
 						subtotal: true,
+						total: true,
+						discountAmount: true,
 					},
 					user,
 				})

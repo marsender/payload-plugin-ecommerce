@@ -5,7 +5,8 @@ export const initiatePayment = (props)=>async ({ data, req, transactionsSlug })=
         const customerEmail = data.customerEmail;
         const currency = data.currency;
         const cart = data.cart;
-        const amount = cart.subtotal;
+        // Use total when available (reflects coupon/referral discounts), fall back to subtotal
+        const amount = typeof cart.total === 'number' && cart.total > 0 ? cart.total : cart.subtotal;
         const billingAddressFromData = data.billingAddress;
         const shippingAddressFromData = data.shippingAddress;
         let resolvedSecretKey = secretKey;

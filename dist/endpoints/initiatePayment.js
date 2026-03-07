@@ -50,7 +50,9 @@ import { defaultProductsValidation } from '../utilities/defaultProductsValidatio
                         currency: true,
                         customerEmail: true,
                         items: true,
-                        subtotal: true
+                        subtotal: true,
+                        total: true,
+                        discountAmount: true
                     },
                     user
                 });

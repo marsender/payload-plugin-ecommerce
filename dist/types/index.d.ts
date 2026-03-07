@@ -25,9 +25,20 @@ export type CartItem = {
 type DefaultCartType = {
     currency?: string;
     customer?: DefaultDocumentIDType | TypedCollection['customers'];
+    /**
+     * Discount amount applied by coupon/referral plugins.
+     * Optional field set by external plugins like @wtree/payload-ecommerce-coupon.
+     */
+    discountAmount?: number;
     id: DefaultDocumentIDType;
     items: CartItem[];
     subtotal?: number;
+    /**
+     * Cart total after discounts (coupon/referral).
+     * Optional field set by external plugins like @wtree/payload-ecommerce-coupon.
+     * When present, this should be used as the payment amount instead of subtotal.
+     */
+    total?: number;
 };
 export type Cart = DefaultCartType;
 type InitiatePaymentReturnType = {
