@@ -58,12 +58,6 @@ type DefaultCartType = {
   id: DefaultDocumentIDType
   items: CartItem[]
   subtotal?: number
-  /**
-   * Cart total after discounts (coupon/referral).
-   * Optional field set by external plugins like @wtree/payload-ecommerce-coupon.
-   * When present, this should be used as the payment amount instead of subtotal.
-   */
-  total?: number
 }
 
 export type Cart = DefaultCartType

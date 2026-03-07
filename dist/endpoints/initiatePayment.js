@@ -51,7 +51,6 @@ import { defaultProductsValidation } from '../utilities/defaultProductsValidatio
                         customerEmail: true,
                         items: true,
                         subtotal: true,
-                        total: true,
                         discountAmount: true
                     },
                     user
