@@ -5,8 +5,8 @@ A fork of [@payloadcms/plugin-ecommerce](https://github.com/payloadcms/payload/t
 ## Installation
 
 ```bash
-# From GitHub
-pnpm add github:marsender/payload-plugin-ecommerce
+# From GitHub, pinned to a specific tag
+pnpm add github:marsender/payload-plugin-ecommerce#v3.79.0
 ```
 
 ## Usage
@@ -238,6 +238,56 @@ Synchronized with PayloadCMS plugin-ecommerce v3.71.1:
 - **`variantTypesSlug` parameter**: Added to `createVariantsCollection` for custom variant type collection slugs
 - **New React provider functions**: `clearSession`, `mergeCart`, `onLogin`, `onLogout`, `refreshCart`, `config`, `user`
 - **Type improvements**: New types `CartItemMatcher`, `CartItemMatcherArgs`, `EcommerceConfig`, `SanitizedAccessConfig`
+
+## Development & Release
+
+### Workflow
+
+Changes are made directly in the plugin source and consumed by pinning a GitHub tag in dependent projects. Tags follow the PayloadCMS version they are compatible with (e.g. `v3.79.0`).
+
+### Making changes
+
+```bash
+cd /opt/git/marsender/payload-plugin-ecommerce
+
+# Remove stale node_modules and lockfile before reinstalling (required when upgrading payload version)
+pnpm store prune
+rm -rf node_modules && rm pnpm-lock.yaml
+pnpm install
+
+# Optionally upgrade peer dependencies to a new PayloadCMS version
+pnpm update payload@<version> @payloadcms/ui@<version> @payloadcms/translations@<version>
+
+# Update version in package.json to match the target PayloadCMS version, then:
+pnpm type-check && pnpm build
+
+git add .
+git commit -m "<message reflecting the changes>"
+git push
+```
+
+### Tagging a release
+
+```bash
+git tag v<target-version>
+git push origin v<target-version>
+```
+
+### Consuming the new release
+
+In the dependent project, update `package.json` to pin the new tag:
+
+```json
+"@marsender/payload-plugin-ecommerce": "github:marsender/payload-plugin-ecommerce#v<target-version>"
+```
+
+Then reinstall and verify:
+
+```bash
+pnpm install
+pnpm dedupe
+pnpm type-check
+```
 
 ## Contributing
 
