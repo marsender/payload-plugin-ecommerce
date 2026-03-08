@@ -224,12 +224,59 @@ export const initiatePayment = (props)=>async ({ data, req, transactionsSlug })=
                     data: fullTransactionData
                 });
             } else {
-                // Create a new transaction for the payment intent
-                await payload.create({
-                    collection: transactionsSlug,
-                    req,
-                    data: fullTransactionData
-                });
+                // Create a new transaction for the payment intent.
+                // Wrap in try/catch to handle race conditions: if a concurrent request created
+                // the transaction between our find() check and this create(), catch the id
+                // uniqueness error and fall back to updating the now-existing transaction.
+                try {
+                    await payload.create({
+                        collection: transactionsSlug,
+                        req,
+                        data: fullTransactionData
+                    });
+                } catch (createError) {
+                    const isIdConflict = createError !== null && typeof createError === 'object' && 'data' in createError && typeof createError.data === 'object' && createError.data?.errors?.some((e)=>e.path === 'id');
+                    if (!isIdConflict) {
+                        throw createError;
+                    }
+                    // Race condition: find the transaction that was created by the concurrent request
+                    const raceTransaction = await payload.find({
+                        collection: transactionsSlug,
+                        where: {
+                            and: [
+                                {
+                                    cart: {
+                                        equals: cart.id
+                                    }
+                                },
+                                {
+                                    status: {
+                                        equals: 'pending'
+                                    }
+                                },
+                                {
+                                    paymentMethod: {
+                                        equals: 'stripe'
+                                    }
+                                }
+                            ]
+                        },
+                        limit: 1,
+                        depth: 0,
+                        overrideAccess: true,
+                        req
+                    });
+                    if (raceTransaction.docs[0]) {
+                        await payload.update({
+                            id: raceTransaction.docs[0].id,
+                            collection: transactionsSlug,
+                            req,
+                            data: fullTransactionData
+                        });
+                    } else {
+                        throw createError;
+                    }
+                }
             }
             return {
                 clientSecret: paymentIntent.client_secret || '',
