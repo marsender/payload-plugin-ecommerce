@@ -59,10 +59,9 @@ export const initiatePayment: (props: Props) => NonNullable<PaymentAdapter>['ini
 		}
 
 		const stripe = new Stripe(resolvedSecretKey as string, {
-			// API version can only be the latest, stripe recommends ts ignoring it
-			// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-			// @ts-ignore - ignoring since possible versions are not type safe, only the latest version is recognised
-			apiVersion: apiVersion || '2025-09-30.clover',
+			// When apiVersion is omitted, the Stripe SDK uses its own DEFAULT_API_VERSION.
+			// Each tenant may run a different Stripe API version, so we only pin it when explicitly provided.
+			...(apiVersion && { apiVersion }),
 			appInfo: appInfo || {
 				name: 'Stripe Payload Plugin',
 				url: 'https://payloadcms.com',
