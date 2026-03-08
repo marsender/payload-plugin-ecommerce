@@ -134,8 +134,18 @@ export const initiatePayment = (props)=>async ({ data, req, transactionsSlug })=
             if (existingTransaction) {
                 const existingPaymentIntentID = existingTransaction.stripe?.paymentIntentID;
                 if (existingPaymentIntentID) {
-                    const existingPaymentIntent = await stripe.paymentIntents.retrieve(existingPaymentIntentID);
-                    if (REUSABLE_PAYMENT_INTENT_STATUSES.includes(existingPaymentIntent.status)) {
+                    let existingPaymentIntent = null;
+                    try {
+                        existingPaymentIntent = await stripe.paymentIntents.retrieve(existingPaymentIntentID);
+                    } catch (stripeError) {
+                        // PaymentIntent no longer exists in Stripe (e.g. stale DB record, env mismatch) — fall through to create a new one.
+                        // Use duck-typing instead of instanceof: class checks are unreliable in bundled/minified environments.
+                        const isResourceMissing = stripeError !== null && typeof stripeError === 'object' && 'code' in stripeError && stripeError.code === 'resource_missing';
+                        if (!isResourceMissing) {
+                            throw stripeError;
+                        }
+                    }
+                    if (existingPaymentIntent && REUSABLE_PAYMENT_INTENT_STATUSES.includes(existingPaymentIntent.status)) {
                         // Reuse the existing PaymentIntent: update the transaction with fresh cart data
                         await payload.update({
                             id: existingTransaction.id,
@@ -161,7 +171,7 @@ export const initiatePayment = (props)=>async ({ data, req, transactionsSlug })=
                         };
                     }
                     // Cancel the existing PaymentIntent if it is no longer usable
-                    if (![
+                    if (existingPaymentIntent && ![
                         'canceled',
                         'succeeded'
                     ].includes(existingPaymentIntent.status)) {

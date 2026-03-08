@@ -151,9 +151,23 @@ export const initiatePayment: (props: Props) => NonNullable<PaymentAdapter>['ini
 					const existingPaymentIntentID: string | undefined = (existingTransaction as Record<string, Record<string, string>>).stripe?.paymentIntentID
 
 				if (existingPaymentIntentID) {
-					const existingPaymentIntent = await stripe.paymentIntents.retrieve(existingPaymentIntentID)
+					let existingPaymentIntent: Stripe.PaymentIntent | null = null
+					try {
+						existingPaymentIntent = await stripe.paymentIntents.retrieve(existingPaymentIntentID)
+					} catch (stripeError) {
+						// PaymentIntent no longer exists in Stripe (e.g. stale DB record, env mismatch) — fall through to create a new one.
+						// Use duck-typing instead of instanceof: class checks are unreliable in bundled/minified environments.
+						const isResourceMissing =
+							stripeError !== null &&
+							typeof stripeError === 'object' &&
+							'code' in stripeError &&
+							(stripeError as { code: string }).code === 'resource_missing'
+						if (!isResourceMissing) {
+							throw stripeError
+						}
+					}
 
-					if (REUSABLE_PAYMENT_INTENT_STATUSES.includes(existingPaymentIntent.status)) {
+					if (existingPaymentIntent && REUSABLE_PAYMENT_INTENT_STATUSES.includes(existingPaymentIntent.status)) {
 						// Reuse the existing PaymentIntent: update the transaction with fresh cart data
 						await payload.update({
 							id: existingTransaction.id,
@@ -179,7 +193,7 @@ export const initiatePayment: (props: Props) => NonNullable<PaymentAdapter>['ini
 					}
 
 					// Cancel the existing PaymentIntent if it is no longer usable
-					if (!['canceled', 'succeeded'].includes(existingPaymentIntent.status)) {
+					if (existingPaymentIntent && !['canceled', 'succeeded'].includes(existingPaymentIntent.status)) {
 						await stripe.paymentIntents.cancel(existingPaymentIntentID)
 					}
 				}
