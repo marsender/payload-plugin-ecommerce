@@ -10,6 +10,13 @@ type Props = {
 	secretKey: StripeAdapterArgs['secretKey']
 }
 
+// Stripe PaymentIntent statuses that are still usable for payment
+const REUSABLE_PAYMENT_INTENT_STATUSES: Stripe.PaymentIntent['status'][] = [
+	'requires_payment_method',
+	'requires_confirmation',
+	'requires_action',
+]
+
 export const initiatePayment: (props: Props) => NonNullable<PaymentAdapter>['initiatePayment'] =
 	(props) =>
 	async ({ data, req, transactionsSlug }) => {
@@ -85,8 +92,10 @@ export const initiatePayment: (props: Props) => NonNullable<PaymentAdapter>['ini
 				:	undefined
 
 			// Preserve any additional custom properties (e.g., deliveryOption, customizations)
-			// that may have been added via cartItemMatcher
-			const { product: _product, variant: _variant, ...customProperties } = item
+			// that may have been added via cartItemMatcher.
+			// Exclude 'id' so Payload generates new IDs for transaction items instead of
+			// reusing cart item IDs, which would cause uniqueness violations on retry.
+			const { id: _id, product: _product, variant: _variant, ...customProperties } = item
 
 			return {
 				...customProperties,
@@ -102,6 +111,78 @@ export const initiatePayment: (props: Props) => NonNullable<PaymentAdapter>['ini
 			let connectedAccountId: string | undefined
 			if (resolveConnectedAccount) {
 				connectedAccountId = await resolveConnectedAccount({ cart, req })
+			}
+
+			// Extract tenant from cart for multi-tenant support
+			// @ts-expect-error - tenant field may be added by multi-tenant plugin
+			const cartTenant = typeof cart.tenant === 'object' ? cart.tenant?.id : cart.tenant
+
+			// Base transaction data shared between create and update paths
+			const baseTransactionData = {
+				...(req.user ? { customer: req.user.id } : { customerEmail }),
+				billingAddress: billingAddressFromData,
+				cart: cart.id,
+				items: flattenedCart,
+				paymentMethod: 'stripe',
+				status: 'pending',
+				...(cartTenant && { tenant: cartTenant }),
+			}
+
+			// Look for an existing pending transaction for this cart to avoid creating duplicates
+			const existingTransactions = await payload.find({
+				collection: transactionsSlug,
+				where: {
+					and: [
+						{ cart: { equals: cart.id } },
+						{ status: { equals: 'pending' } },
+						{ paymentMethod: { equals: 'stripe' } },
+					],
+				},
+				limit: 1,
+				depth: 0,
+				overrideAccess: true,
+				req,
+			})
+
+			const existingTransaction = existingTransactions.docs[0] ?? null
+
+			// If an existing pending transaction is found, try to reuse its PaymentIntent
+			if (existingTransaction) {
+					const existingPaymentIntentID: string | undefined = (existingTransaction as Record<string, Record<string, string>>).stripe?.paymentIntentID
+
+				if (existingPaymentIntentID) {
+					const existingPaymentIntent = await stripe.paymentIntents.retrieve(existingPaymentIntentID)
+
+					if (REUSABLE_PAYMENT_INTENT_STATUSES.includes(existingPaymentIntent.status)) {
+						// Reuse the existing PaymentIntent: update the transaction with fresh cart data
+						await payload.update({
+							id: existingTransaction.id,
+							collection: transactionsSlug,
+							req,
+							data: {
+								...baseTransactionData,
+								amount: existingPaymentIntent.amount,
+								currency: existingPaymentIntent.currency.toUpperCase(),
+								stripe: {
+									customerID: customer.id,
+									paymentIntentID: existingPaymentIntent.id,
+									...(connectedAccountId && { connectedAccountId }),
+								},
+							},
+						})
+
+						return {
+							clientSecret: existingPaymentIntent.client_secret || '',
+							message: 'Payment initiated successfully',
+							paymentIntentID: existingPaymentIntent.id,
+						} satisfies InitiatePaymentReturnType
+					}
+
+					// Cancel the existing PaymentIntent if it is no longer usable
+					if (!['canceled', 'succeeded'].includes(existingPaymentIntent.status)) {
+						await stripe.paymentIntents.cancel(existingPaymentIntentID)
+					}
+				}
 			}
 
 			// Build the PaymentIntent create params
@@ -129,39 +210,39 @@ export const initiatePayment: (props: Props) => NonNullable<PaymentAdapter>['ini
 
 			const paymentIntent = await stripe.paymentIntents.create(paymentIntentParams)
 
-			// Extract tenant from cart for multi-tenant support
-			// @ts-expect-error - tenant field may be added by multi-tenant plugin
-			const cartTenant = typeof cart.tenant === 'object' ? cart.tenant?.id : cart.tenant
-
-			// Create a transaction for the payment intent in the database
-			await payload.create({
-				collection: transactionsSlug,
-				req,
-				data: {
-					...(req.user ? { customer: req.user.id } : { customerEmail }),
-					amount: paymentIntent.amount,
-					billingAddress: billingAddressFromData,
-					cart: cart.id,
-					currency: paymentIntent.currency.toUpperCase(),
-					items: flattenedCart,
-					paymentMethod: 'stripe',
-					status: 'pending',
-					stripe: {
-						customerID: customer.id,
-						paymentIntentID: paymentIntent.id,
-						...(connectedAccountId && { connectedAccountId }),
-					},
-					...(cartTenant && { tenant: cartTenant }),
+			const fullTransactionData = {
+				...baseTransactionData,
+				amount: paymentIntent.amount,
+				currency: paymentIntent.currency.toUpperCase(),
+				stripe: {
+					customerID: customer.id,
+					paymentIntentID: paymentIntent.id,
+					...(connectedAccountId && { connectedAccountId }),
 				},
-			})
+			}
 
-			const returnData: InitiatePaymentReturnType = {
+			if (existingTransaction) {
+				// Update the existing transaction with the new PaymentIntent
+				await payload.update({
+					id: existingTransaction.id,
+					collection: transactionsSlug,
+					req,
+					data: fullTransactionData,
+				})
+			} else {
+				// Create a new transaction for the payment intent
+				await payload.create({
+					collection: transactionsSlug,
+					req,
+					data: fullTransactionData,
+				})
+			}
+
+			return {
 				clientSecret: paymentIntent.client_secret || '',
 				message: 'Payment initiated successfully',
 				paymentIntentID: paymentIntent.id,
-			}
-
-			return returnData
+			} satisfies InitiatePaymentReturnType
 		} catch (error) {
 			payload.logger.error(error, 'Error initiating payment with Stripe')
 
