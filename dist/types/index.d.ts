@@ -799,6 +799,11 @@ type APIProps = {
         select?: SelectType;
     };
     /**
+     * The locale to use when fetching cart data from the Payload API.
+     * This ensures product titles and other localized fields are returned in the correct language.
+     */
+    locale?: string;
+    /**
      * The route for the Payload API, defaults to ``. Eg for a Payload app running on `http://localhost:3000`, the default serverURL would be `http://localhost:3000`.
      */
     serverURL?: string;

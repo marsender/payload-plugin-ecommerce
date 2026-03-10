@@ -69,7 +69,7 @@ export const EcommerceProvider = ({ addressesSlug = 'addresses', api, cartsSlug 
         ...defaultLocalStorage,
         ...syncLocalStorage
     } : defaultLocalStorage;
-    const { apiRoute = '/api', cartsFetchQuery = {} } = api || {};
+    const { apiRoute = '/api', cartsFetchQuery = {}, locale } = api || {};
     const baseAPIURL = formatAdminURL({
         apiRoute,
         path: ''
@@ -121,10 +121,14 @@ export const EcommerceProvider = ({ addressesSlug = 'addresses', api, cartsSlug 
                 subtotal: true
             }
         };
+        if (locale) {
+            baseQuery.locale = locale;
+        }
         return deepMergeSimple(baseQuery, cartsFetchQuery);
     }, [
         selectedCurrency.code,
-        cartsFetchQuery
+        cartsFetchQuery,
+        locale
     ]);
     const createCart = useCallback(async (initialData)=>{
         const query = qs.stringify(cartQuery);

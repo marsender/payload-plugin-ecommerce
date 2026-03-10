@@ -105,7 +105,7 @@ export const EcommerceProvider: React.FC<ContextProps> = ({
         }
       : defaultLocalStorage
 
-  const { apiRoute = '/api', cartsFetchQuery = {} } = api || {}
+  const { apiRoute = '/api', cartsFetchQuery = {}, locale } = api || {}
   const baseAPIURL = formatAdminURL({
     apiRoute,
     path: '',
@@ -156,7 +156,7 @@ export const EcommerceProvider: React.FC<ContextProps> = ({
   const cartQuery = useMemo(() => {
     const priceField = `priceIn${selectedCurrency.code}`
 
-    const baseQuery = {
+    const baseQuery: Record<string, unknown> = {
       depth: 0,
       populate: {
         products: {
@@ -173,8 +173,12 @@ export const EcommerceProvider: React.FC<ContextProps> = ({
       },
     }
 
+    if (locale) {
+      baseQuery.locale = locale
+    }
+
     return deepMergeSimple(baseQuery, cartsFetchQuery)
-  }, [selectedCurrency.code, cartsFetchQuery])
+  }, [selectedCurrency.code, cartsFetchQuery, locale])
 
   const createCart = useCallback(
     async (initialData: Record<string, unknown>) => {
