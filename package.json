@@ -1,6 +1,6 @@
 {
   "name": "@marsender/payload-plugin-ecommerce",
-  "version": "3.79.5",
+  "version": "3.80.0",
   "description": "Ecommerce plugin for Payload - Fork with custom enhancements for multi-tenant",
   "keywords": [
     "payload",
