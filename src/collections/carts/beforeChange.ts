@@ -26,6 +26,7 @@ export const beforeChangeCart: (args: Props) => CollectionBeforeChangeHook =
       const priceField = `priceIn${data.currency}`
 
       let subtotal = 0
+      const filteredItems = []
 
       for (const item of data.items) {
         if (item.variant) {
@@ -40,6 +41,7 @@ export const beforeChangeCart: (args: Props) => CollectionBeforeChangeHook =
             },
           })
 
+          filteredItems.push(item)
           subtotal += variant[priceField] * item.quantity
         } else {
           const id = typeof item.product === 'object' ? item.product.id : item.product
@@ -49,14 +51,25 @@ export const beforeChangeCart: (args: Props) => CollectionBeforeChangeHook =
             collection: productsSlug,
             depth: 0,
             select: {
+              billingInterval: true,
               [priceField]: true,
             },
           })
 
+          // Silently exclude recurring subscription products — they use the SubscribeModal flow
+          if (product.billingInterval && product.billingInterval !== 'none') {
+            req.payload.logger.info(
+              `[cart] Skipping recurring product ${id} (billingInterval: ${product.billingInterval})`,
+            )
+            continue
+          }
+
+          filteredItems.push(item)
           subtotal += product[priceField] * item.quantity
         }
       }
 
+      data.items = filteredItems
       data.subtotal = subtotal
     } else {
       data.subtotal = 0
