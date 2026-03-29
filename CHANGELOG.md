@@ -9,6 +9,18 @@ PayloadCMS compatibility.
 
 ---
 
+## [3.80.2] — 2026-03-28
+
+### Changed
+
+- **Server-side guard for subscription cart items.**
+  When computing the subtotal, the server now fetches `billingInterval` alongside the
+  price and silently filters out any item whose product has `billingInterval !== 'none'`.
+  A `[cart]` info message is logged for each filtered item so it remains visible in
+  server logs.
+
+---
+
 ## [3.80.1] — 2026-03-24
 
 ### Security
