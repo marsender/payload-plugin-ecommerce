@@ -9,6 +9,35 @@ PayloadCMS compatibility.
 
 ---
 
+## [3.80.3] — 2026-03-31
+
+### Fixed
+
+- **`formatCurrency` now uses locale-aware formatting.**
+  The `useCurrency()` hook's `formatCurrency` function was using a hardcoded
+  `` `${symbol}${value.toFixed(decimals)}` `` pattern, which always placed the symbol
+  before the amount with an English decimal separator (e.g. `€90.00`). This is
+  non-standard for many locales — French convention, for example, places the symbol
+  after the amount with a comma separator (`90,00 €`).
+
+  The function now delegates to `Intl.NumberFormat` with `style: 'currency'`, letting
+  the browser's locale determine symbol position, decimal separator, and thousands
+  separator automatically. The zero-amount special case has been removed as
+  `Intl.NumberFormat` handles it correctly.
+
+  | Locale | Before | After |
+  |--------|--------|-------|
+  | `fr-FR` / EUR | `€90.00` | `90,00 €` |
+  | `en-US` / EUR | `€90.00` | `€90.00` ✅ |
+  | `fr-FR` / USD | `$90.00` | `90,00 $US` |
+  | `en-US` / USD | `$90.00` | `$90.00` ✅ |
+
+  **No breaking changes.** The `Currency` type, `useCurrency()` API, and `<Price>`
+  component props are unchanged. Components using `suppressHydrationWarning` (such as
+  the built-in `<Price>`) handle the SSR/client locale mismatch correctly.
+
+---
+
 ## [3.80.2] — 2026-03-28
 
 ### Changed
