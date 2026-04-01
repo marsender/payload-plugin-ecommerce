@@ -42,7 +42,7 @@ type ConfirmOrderHandler = (args: Args) => Endpoint['handler']
  * This is the first step in the payment process.
  */
 export const confirmOrderHandler: ConfirmOrderHandler =
-	({ cartsSlug = 'carts', currenciesConfig, customersSlug = 'users', ordersSlug = 'orders', paymentMethod, productsSlug = 'products', productsValidation, transactionsSlug = 'transactions', variantsSlug = 'variants' }) =>
+	({ cartsSlug = 'carts', currenciesConfig, customersSlug = 'users', ordersSlug = 'orders', paymentMethod, productsSlug = 'products', productsValidation: _productsValidation, transactionsSlug = 'transactions', variantsSlug = 'variants' }) =>
 	async (req) => {
 		await addDataAndFileToRequest(req)
 

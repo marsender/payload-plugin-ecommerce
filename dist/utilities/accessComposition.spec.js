@@ -1,4 +1,4 @@
-import { accessAND, conditional, accessOR } from './accessComposition';
+/* eslint-disable @typescript-eslint/no-explicit-any */ import { accessAND, conditional, accessOR } from './accessComposition';
 // Mock access args for testing
 const mockArgs = {
     req: {

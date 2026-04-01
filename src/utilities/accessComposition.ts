@@ -1,4 +1,4 @@
-import type { Access, Where } from 'payload'
+import type { Access, AccessArgs, Where } from 'payload'
 
 import { combineWhereConstraints } from 'payload/shared'
 
@@ -109,7 +109,7 @@ export const accessAND = (...accessFunctions: Access[]): Access => {
  * ```
  */
 export const conditional = (
-  condition: ((args: any) => boolean) | boolean,
+  condition: ((args: AccessArgs) => boolean) | boolean,
   accessFunction: Access,
   fallback: Access = () => false,
 ): Access => {

@@ -1,4 +1,4 @@
-import type { Access } from 'payload';
+import type { Access, AccessArgs } from 'payload';
 /**
  * Combines multiple access functions with OR logic.
  *
@@ -51,5 +51,5 @@ export declare const accessAND: (...accessFunctions: Access[]) => Access;
  * )
  * ```
  */
-export declare const conditional: (condition: ((args: any) => boolean) | boolean, accessFunction: Access, fallback?: Access) => Access;
+export declare const conditional: (condition: ((args: AccessArgs) => boolean) | boolean, accessFunction: Access, fallback?: Access) => Access;
 //# sourceMappingURL=accessComposition.d.ts.map

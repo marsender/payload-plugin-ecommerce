@@ -321,7 +321,6 @@ export const EcommerceProvider = ({ addressesSlug = 'addresses', api, cartsSlug 
             }
         } catch (error) {
             if (debug) {
-                // eslint-disable-next-line no-console
                 console.error('Error adding item to cart:', error);
             }
         } finally{
@@ -372,7 +371,6 @@ export const EcommerceProvider = ({ addressesSlug = 'addresses', api, cartsSlug 
             setCart(refreshedCart);
         } catch (error) {
             if (debug) {
-                // eslint-disable-next-line no-console
                 console.error('Error removing item from cart:', error);
             }
         } finally{
@@ -425,7 +423,6 @@ export const EcommerceProvider = ({ addressesSlug = 'addresses', api, cartsSlug 
             setCart(refreshedCart);
         } catch (error) {
             if (debug) {
-                // eslint-disable-next-line no-console
                 console.error('Error incrementing item quantity:', error);
             }
         } finally{
@@ -478,7 +475,6 @@ export const EcommerceProvider = ({ addressesSlug = 'addresses', api, cartsSlug 
             setCart(refreshedCart);
         } catch (error) {
             if (debug) {
-                // eslint-disable-next-line no-console
                 console.error('Error decrementing item quantity:', error);
             }
         } finally{
@@ -527,7 +523,6 @@ export const EcommerceProvider = ({ addressesSlug = 'addresses', api, cartsSlug 
             setCart(refreshedCart);
         } catch (error) {
             if (debug) {
-                // eslint-disable-next-line no-console
                 console.error('Error clearing cart:', error);
             }
         } finally{
@@ -592,7 +587,6 @@ export const EcommerceProvider = ({ addressesSlug = 'addresses', api, cartsSlug 
                 return responseData;
             } catch (error) {
                 if (debug) {
-                    // eslint-disable-next-line no-console
                     console.error('Error initiating payment:', error);
                 }
                 throw new Error(error instanceof Error ? error.message : 'Failed to initiate payment');
@@ -680,7 +674,6 @@ export const EcommerceProvider = ({ addressesSlug = 'addresses', api, cartsSlug 
             }
         } catch (error) {
             if (debug) {
-                // eslint-disable-next-line no-console
                 console.error('Error fetching user:', error);
             }
             setUser(null);
@@ -739,7 +732,6 @@ export const EcommerceProvider = ({ addressesSlug = 'addresses', api, cartsSlug 
             setAddresses(data.docs ?? []);
         } catch (error) {
             if (debug) {
-                // eslint-disable-next-line no-console
                 console.error('Error fetching addresses:', error);
             }
             setAddresses([]);
@@ -776,7 +768,6 @@ export const EcommerceProvider = ({ addressesSlug = 'addresses', api, cartsSlug 
             await getAddresses();
         } catch (error) {
             if (debug) {
-                // eslint-disable-next-line no-console
                 console.error('Error updating or creating address:', error);
             }
             throw new Error(`Failed to update or create address: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -813,7 +804,6 @@ export const EcommerceProvider = ({ addressesSlug = 'addresses', api, cartsSlug 
             await getAddresses();
         } catch (error) {
             if (debug) {
-                // eslint-disable-next-line no-console
                 console.error('Error updating or creating address:', error);
             }
             throw new Error(`Failed to update or create address: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -849,7 +839,6 @@ export const EcommerceProvider = ({ addressesSlug = 'addresses', api, cartsSlug 
             await getAddresses();
         } catch (error) {
             if (debug) {
-                // eslint-disable-next-line no-console
                 console.error('Error deleting address:', error);
             }
             throw new Error(`Failed to delete address: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -932,7 +921,6 @@ export const EcommerceProvider = ({ addressesSlug = 'addresses', api, cartsSlug 
             return refreshedCart;
         } catch (error) {
             if (debug) {
-                // eslint-disable-next-line no-console
                 console.error('Error merging carts:', error);
             }
             throw error;
@@ -973,7 +961,6 @@ export const EcommerceProvider = ({ addressesSlug = 'addresses', api, cartsSlug 
                     await mergeCart(userCartID, guestCartID, guestSecret);
                 } catch (error) {
                     if (debug) {
-                        // eslint-disable-next-line no-console
                         console.error('Error merging carts:', error);
                     }
                     // Fall back to user's cart
@@ -1003,7 +990,6 @@ export const EcommerceProvider = ({ addressesSlug = 'addresses', api, cartsSlug 
                     }
                 } catch (error) {
                     if (debug) {
-                        // eslint-disable-next-line no-console
                         console.error('Error transferring cart to user:', error);
                     }
                 }
@@ -1067,7 +1053,6 @@ export const EcommerceProvider = ({ addressesSlug = 'addresses', api, cartsSlug 
                             setCartID(userCartID);
                         }).catch((error)=>{
                             if (debug) {
-                                // eslint-disable-next-line no-console
                                 console.error('Error fetching user cart:', error);
                             }
                             setCart(undefined);

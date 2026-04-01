@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { CurrenciesConfig } from '../types/index.js'
 
 import { EUR, USD } from '../currencies/index.js'

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Access, AccessArgs, Where } from 'payload'
 
 import { accessAND, conditional, accessOR } from './accessComposition'

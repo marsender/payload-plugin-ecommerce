@@ -375,7 +375,6 @@ export const EcommerceProvider: React.FC<ContextProps> = ({
         }
       } catch (error) {
         if (debug) {
-          // eslint-disable-next-line no-console
           console.error('Error adding item to cart:', error)
         }
       } finally {
@@ -425,7 +424,6 @@ export const EcommerceProvider: React.FC<ContextProps> = ({
         setCart(refreshedCart)
       } catch (error) {
         if (debug) {
-          // eslint-disable-next-line no-console
           console.error('Error removing item from cart:', error)
         }
       } finally {
@@ -476,7 +474,6 @@ export const EcommerceProvider: React.FC<ContextProps> = ({
         setCart(refreshedCart)
       } catch (error) {
         if (debug) {
-          // eslint-disable-next-line no-console
           console.error('Error incrementing item quantity:', error)
         }
       } finally {
@@ -527,7 +524,6 @@ export const EcommerceProvider: React.FC<ContextProps> = ({
         setCart(refreshedCart)
       } catch (error) {
         if (debug) {
-          // eslint-disable-next-line no-console
           console.error('Error decrementing item quantity:', error)
         }
       } finally {
@@ -575,7 +571,6 @@ export const EcommerceProvider: React.FC<ContextProps> = ({
       setCart(refreshedCart)
     } catch (error) {
       if (debug) {
-        // eslint-disable-next-line no-console
         console.error('Error clearing cart:', error)
       }
     } finally {
@@ -648,7 +643,6 @@ export const EcommerceProvider: React.FC<ContextProps> = ({
           return responseData
         } catch (error) {
           if (debug) {
-            // eslint-disable-next-line no-console
             console.error('Error initiating payment:', error)
           }
           throw new Error(error instanceof Error ? error.message : 'Failed to initiate payment')
@@ -746,7 +740,6 @@ export const EcommerceProvider: React.FC<ContextProps> = ({
       }
     } catch (error) {
       if (debug) {
-        // eslint-disable-next-line no-console
         console.error('Error fetching user:', error)
       }
       setUser(null)
@@ -813,7 +806,6 @@ export const EcommerceProvider: React.FC<ContextProps> = ({
       setAddresses(data.docs ?? [])
     } catch (error) {
       if (debug) {
-        // eslint-disable-next-line no-console
         console.error('Error fetching addresses:', error)
       }
       setAddresses([])
@@ -852,7 +844,6 @@ export const EcommerceProvider: React.FC<ContextProps> = ({
         await getAddresses()
       } catch (error) {
         if (debug) {
-          // eslint-disable-next-line no-console
           console.error('Error updating or creating address:', error)
         }
 
@@ -895,7 +886,6 @@ export const EcommerceProvider: React.FC<ContextProps> = ({
         await getAddresses()
       } catch (error) {
         if (debug) {
-          // eslint-disable-next-line no-console
           console.error('Error updating or creating address:', error)
         }
 
@@ -937,7 +927,6 @@ export const EcommerceProvider: React.FC<ContextProps> = ({
         await getAddresses()
       } catch (error) {
         if (debug) {
-          // eslint-disable-next-line no-console
           console.error('Error deleting address:', error)
         }
 
@@ -1023,7 +1012,6 @@ export const EcommerceProvider: React.FC<ContextProps> = ({
         return refreshedCart
       } catch (error) {
         if (debug) {
-          // eslint-disable-next-line no-console
           console.error('Error merging carts:', error)
         }
         throw error
@@ -1073,7 +1061,6 @@ export const EcommerceProvider: React.FC<ContextProps> = ({
           await mergeCart(userCartID, guestCartID, guestSecret)
         } catch (error) {
           if (debug) {
-            // eslint-disable-next-line no-console
             console.error('Error merging carts:', error)
           }
           // Fall back to user's cart
@@ -1107,7 +1094,6 @@ export const EcommerceProvider: React.FC<ContextProps> = ({
           }
         } catch (error) {
           if (debug) {
-            // eslint-disable-next-line no-console
             console.error('Error transferring cart to user:', error)
           }
         }
@@ -1182,7 +1168,6 @@ export const EcommerceProvider: React.FC<ContextProps> = ({
               })
               .catch((error) => {
                 if (debug) {
-                  // eslint-disable-next-line no-console
                   console.error('Error fetching user cart:', error)
                 }
 

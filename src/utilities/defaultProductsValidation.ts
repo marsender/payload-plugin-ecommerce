@@ -3,7 +3,7 @@ import type { ProductsValidation } from '../types/index.js'
 import { MissingPrice, OutOfStock } from './errorCodes.js'
 
 export const defaultProductsValidation: ProductsValidation = ({
-  currenciesConfig,
+  currenciesConfig: _currenciesConfig,
   currency,
   product,
   quantity = 1,

@@ -1,5 +1,5 @@
 import { MissingPrice, OutOfStock } from './errorCodes.js';
-export const defaultProductsValidation = ({ currenciesConfig, currency, product, quantity = 1, variant })=>{
+export const defaultProductsValidation = ({ currenciesConfig: _currenciesConfig, currency, product, quantity = 1, variant })=>{
     if (!currency) {
         throw new Error('Currency must be provided for product validation.');
     }

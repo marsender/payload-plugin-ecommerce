@@ -57,7 +57,7 @@ export const validateOptions: (props?: Props) => Validate =
     if (variants.length > 0) {
       const existingOptions: (number | string)[][] = []
 
-      variants.forEach((variant: any) => {
+      variants.forEach((variant: { options: (string | number)[] }) => {
         existingOptions.push(variant.options)
       })
 

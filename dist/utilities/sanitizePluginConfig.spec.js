@@ -1,4 +1,4 @@
-import { EUR, USD } from '../currencies/index.js';
+/* eslint-disable @typescript-eslint/no-explicit-any */ import { EUR, USD } from '../currencies/index.js';
 import { sanitizePluginConfig } from './sanitizePluginConfig';
 describe('sanitizePluginConfig', ()=>{
     const mockAccessConfig = {

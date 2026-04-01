@@ -1,4 +1,4 @@
-import { EUR, USD } from '../currencies/index.js';
+/* eslint-disable @typescript-eslint/no-explicit-any */ import { EUR, USD } from '../currencies/index.js';
 import { defaultProductsValidation } from './defaultProductsValidation';
 import { MissingPrice, OutOfStock } from './errorCodes';
 describe('defaultProductsValidation', ()=>{
