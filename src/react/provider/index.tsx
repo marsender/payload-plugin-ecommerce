@@ -1282,15 +1282,16 @@ export const useCurrency = () => {
         return value.toString()
       }
 
-      if (value === 0) {
-        return `${currencyToUse.symbol}0.${'0'.repeat(currencyToUse.decimals)}`
-      }
-
       // Convert from base value (e.g., cents) to decimal value (e.g., dollars)
       const decimalValue = value / Math.pow(10, currencyToUse.decimals)
 
-      // Format with the correct number of decimal places
-      return `${currencyToUse.symbol}${decimalValue.toFixed(currencyToUse.decimals)}`
+      // Format using locale-aware Intl.NumberFormat (symbol position and separators are locale-determined)
+      return new Intl.NumberFormat(undefined, {
+        style: 'currency',
+        currency: currencyToUse.code,
+        minimumFractionDigits: currencyToUse.decimals,
+        maximumFractionDigits: currencyToUse.decimals,
+      }).format(decimalValue)
     },
     [currency],
   )
