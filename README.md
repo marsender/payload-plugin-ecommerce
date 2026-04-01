@@ -6,7 +6,7 @@ A fork of [@payloadcms/plugin-ecommerce](https://github.com/payloadcms/payload/t
 
 ```bash
 # From GitHub, pinned to a specific tag
-pnpm add github:marsender/payload-plugin-ecommerce#v3.79.0
+pnpm add github:marsender/payload-plugin-ecommerce#v3.80.3
 ```
 
 ## Usage

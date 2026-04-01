@@ -11,6 +11,14 @@ PayloadCMS compatibility.
 
 ## [3.80.3] — 2026-03-31
 
+### Changed
+
+- **Lint and type cleanup (no functional changes).**
+  - `conditional()` in `accessComposition.ts`: condition parameter typed as `AccessArgs` instead of `any`, giving proper type-checking when writing access functions.
+  - Removed superfluous `// eslint-disable-next-line no-console` comments from `EcommerceProvider` debug error blocks.
+  - Renamed unused destructured parameters (`productsValidation` → `_productsValidation` in `confirmOrder.ts`, `currenciesConfig` → `_currenciesConfig` in `defaultProductsValidation.ts`) and tightened the variant forEach callback type in `validateOptions.ts`.
+  - Added file-level `/* eslint-disable @typescript-eslint/no-explicit-any */` to spec files instead of per-line suppressions.
+
 ### Fixed
 
 - **`formatCurrency` now uses locale-aware formatting.**
@@ -25,9 +33,9 @@ PayloadCMS compatibility.
   separator automatically. The zero-amount special case has been removed as
   `Intl.NumberFormat` handles it correctly.
 
-  | Locale | Before | After |
-  |--------|--------|-------|
-  | `fr-FR` / EUR | `€90.00` | `90,00 €` |
+  | Locale        | Before   | After       |
+  | ------------- | -------- | ----------- |
+  | `fr-FR` / EUR | `€90.00` | `90,00 €`   |
   | `en-US` / EUR | `€90.00` | `€90.00` ✅ |
   | `fr-FR` / USD | `$90.00` | `90,00 $US` |
   | `en-US` / USD | `$90.00` | `$90.00` ✅ |
@@ -58,13 +66,13 @@ PayloadCMS compatibility.
   Previously, the handler returned HTTP 200 for requests that should have been rejected,
   creating two exploitable gaps:
 
-  | Scenario | Before | After |
-  |----------|--------|-------|
-  | `stripe-signature` header missing | HTTP 200 (silent pass) | HTTP 400 |
-  | Webhook secret not configured for tenant | HTTP 200 (silent pass) | HTTP 500 |
-  | Secret key not configured for tenant | HTTP 200 (silent pass) | HTTP 500 |
-  | Invalid or replayed signature | HTTP 400, `{ received: true }` | HTTP 400, `{ received: false }` |
-  | Valid event | HTTP 200 ✅ | HTTP 200 ✅ (unchanged) |
+  | Scenario                                 | Before                         | After                           |
+  | ---------------------------------------- | ------------------------------ | ------------------------------- |
+  | `stripe-signature` header missing        | HTTP 200 (silent pass)         | HTTP 400                        |
+  | Webhook secret not configured for tenant | HTTP 200 (silent pass)         | HTTP 500                        |
+  | Secret key not configured for tenant     | HTTP 200 (silent pass)         | HTTP 500                        |
+  | Invalid or replayed signature            | HTTP 400, `{ received: true }` | HTTP 400, `{ received: false }` |
+  | Valid event                              | HTTP 200 ✅                    | HTTP 200 ✅ (unchanged)         |
 
   The handler now uses sequential early-exit guards:
   1. Missing secret key → `500` (configuration error — Stripe will retry)
@@ -145,12 +153,12 @@ PayloadCMS compatibility.
 
 ## Earlier versions (pre-3.79.0)
 
-| Version | Notable changes |
-|---------|----------------|
-| 3.78.0 | Upgraded to PayloadCMS 3.78.0 |
-| 3.77.0 | Upgraded to PayloadCMS 3.77.0 |
-| 3.76.1 | Upgraded to PayloadCMS 3.76.1; multi-tenant variant type filtering; fix variant deletion on product delete |
-| 3.75.0 | Upgraded to PayloadCMS 3.75.0; applied variant trash fix |
-| 3.74.0 | Upgraded to PayloadCMS 3.74.0; added i18n restructure; new confirm-order params |
-| 3.73.0 | Upgraded to PayloadCMS 3.73.0 |
-| 1.0.0  | Initial fork from `@payloadcms/plugin-ecommerce`; added multi-tenant cart support, Stripe Connect, `refreshUser()`, `deleteAddress()`, simplified address auto-assignment |
+| Version | Notable changes                                                                                                                                                           |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 3.78.0  | Upgraded to PayloadCMS 3.78.0                                                                                                                                             |
+| 3.77.0  | Upgraded to PayloadCMS 3.77.0                                                                                                                                             |
+| 3.76.1  | Upgraded to PayloadCMS 3.76.1; multi-tenant variant type filtering; fix variant deletion on product delete                                                                |
+| 3.75.0  | Upgraded to PayloadCMS 3.75.0; applied variant trash fix                                                                                                                  |
+| 3.74.0  | Upgraded to PayloadCMS 3.74.0; added i18n restructure; new confirm-order params                                                                                           |
+| 3.73.0  | Upgraded to PayloadCMS 3.73.0                                                                                                                                             |
+| 1.0.0   | Initial fork from `@payloadcms/plugin-ecommerce`; added multi-tenant cart support, Stripe Connect, `refreshUser()`, `deleteAddress()`, simplified address auto-assignment |
