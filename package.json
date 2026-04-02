@@ -1,6 +1,6 @@
 {
   "name": "@marsender/payload-plugin-ecommerce",
-  "version": "3.80.3",
+  "version": "3.81.0",
   "description": "Ecommerce plugin for Payload - Fork with custom enhancements for multi-tenant",
   "keywords": [
     "payload",
@@ -71,7 +71,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "qs-esm": "7.0.3"
+    "qs-esm": "8.0.1"
   },
   "devDependencies": {
     "@swc/cli": "^0.7.10",
