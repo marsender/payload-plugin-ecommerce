@@ -9,6 +9,16 @@ PayloadCMS compatibility.
 
 ---
 
+## [3.82.1] — 2026-04-09
+
+### Changed
+
+- **Version alignment with PayloadCMS 3.82.1.**
+  No upstream plugin code changes between v3.81.0 and v3.82.1 — this release is a
+  version bump only to maintain compatibility with the PayloadCMS 3.82.x release line.
+
+---
+
 ## [3.80.3] — 2026-03-31
 
 ### Changed
