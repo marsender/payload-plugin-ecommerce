@@ -10,6 +10,7 @@ interface Props {
     path: string;
     placeholder?: string;
     readOnly?: boolean;
+    required?: boolean;
     supportedCurrencies: Currency[];
 }
 export declare const FormattedInput: React.FC<Props>;

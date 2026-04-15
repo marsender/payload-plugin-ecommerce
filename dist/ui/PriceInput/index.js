@@ -13,6 +13,7 @@ export const PriceInput = (args)=>{
         label: label,
         path: path,
         readOnly: readOnly,
+        required: field.required,
         supportedCurrencies: currenciesConfig?.supportedCurrencies
     });
 };

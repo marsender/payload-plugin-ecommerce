@@ -12,13 +12,13 @@ export const PriceCell = (args)=>{
             children: t('plugin-ecommerce:currencyNotSet')
         });
     }
-    if ((!cellData || typeof cellData !== 'number') && 'enableVariants' in rowData && rowData.enableVariants) {
+    if ((cellData == null || typeof cellData !== 'number') && 'enableVariants' in rowData && rowData.enableVariants) {
         // @ts-expect-error - plugin translations are not typed yet
         return /*#__PURE__*/ _jsx("span", {
             children: t('plugin-ecommerce:priceSetInVariants')
         });
     }
-    if (!cellData) {
+    if (cellData == null) {
         // @ts-expect-error - plugin translations are not typed yet
         return /*#__PURE__*/ _jsx("span", {
             children: t('plugin-ecommerce:priceNotSet')

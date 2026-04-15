@@ -9,6 +9,17 @@ PayloadCMS compatibility.
 
 ---
 
+## [3.83.0] — 2026-04-15
+
+### Fixed
+
+- **PriceCell**: price `0` now displays correctly instead of showing "price not set"
+  (`!cellData` replaced with `cellData == null`).
+- **PriceInput / FormattedInput**: `required` field status is now respected — the
+  required indicator is shown on the price label when the field is marked required.
+
+---
+
 ## [3.82.1] — 2026-04-09
 
 ### Changed

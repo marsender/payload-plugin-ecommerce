@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { USD } from '../../currencies/index.js';
 import { convertFromBaseValue, convertToBaseValue } from '../utilities.js';
 const baseClass = 'formattedPrice';
-export const FormattedInput = ({ id: idFromProps, currency: currencyFromProps, description, disabled = false, label, path, placeholder = '0.00', readOnly, supportedCurrencies })=>{
+export const FormattedInput = ({ id: idFromProps, currency: currencyFromProps, description, disabled = false, label, path, placeholder = '0.00', readOnly, required, supportedCurrencies })=>{
     const { setValue, value } = useField({
         path
     });
@@ -110,7 +110,8 @@ export const FormattedInput = ({ id: idFromProps, currency: currencyFromProps, d
             label && /*#__PURE__*/ _jsx(FieldLabel, {
                 as: "label",
                 htmlFor: id,
-                label: label
+                label: label,
+                required: required
             }),
             /*#__PURE__*/ _jsxs("div", {
                 className: `${baseClass}Container`,
