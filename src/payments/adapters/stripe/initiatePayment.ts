@@ -116,10 +116,16 @@ export const initiatePayment: (props: Props) => NonNullable<PaymentAdapter>['ini
 			// @ts-expect-error - tenant field may be added by multi-tenant plugin
 			const cartTenant = typeof cart.tenant === 'object' ? cart.tenant?.id : cart.tenant
 
+			// Sanitize billing address: convert empty string title to null so Payload's select field validation passes
+			const sanitizedBillingAddress =
+				billingAddressFromData && (billingAddressFromData as Record<string, unknown>).title === ''
+					? { ...(billingAddressFromData as Record<string, unknown>), title: null }
+					: billingAddressFromData
+
 			// Base transaction data shared between create and update paths
 			const baseTransactionData = {
 				...(req.user ? { customer: req.user.id } : { customerEmail }),
-				billingAddress: billingAddressFromData,
+				billingAddress: sanitizedBillingAddress,
 				cart: cart.id,
 				items: flattenedCart,
 				paymentMethod: 'stripe',

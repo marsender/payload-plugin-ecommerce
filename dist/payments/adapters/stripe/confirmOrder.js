@@ -45,7 +45,14 @@ export const confirmOrder = (props)=>async ({ data, ordersSlug = 'orders', req, 
         const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentID);
         const cartID = paymentIntent.metadata.cartID;
         const cartItemsSnapshot = paymentIntent.metadata.cartItemsSnapshot ? JSON.parse(paymentIntent.metadata.cartItemsSnapshot) : undefined;
-        const shippingAddress = paymentIntent.metadata.shippingAddress ? JSON.parse(paymentIntent.metadata.shippingAddress) : undefined;
+        const shippingAddressRaw = paymentIntent.metadata.shippingAddress ? JSON.parse(paymentIntent.metadata.shippingAddress) : undefined;
+        // Sanitize address: convert empty string title to null so Payload's select field validation passes
+        const shippingAddress = shippingAddressRaw ? {
+            ...shippingAddressRaw,
+            ...shippingAddressRaw.title === '' ? {
+                title: null
+            } : {}
+        } : undefined;
         if (!cartID) {
             throw new Error('Cart ID not found in the PaymentIntent metadata');
         }

@@ -87,6 +87,11 @@ export const initiatePayment = (props)=>async ({ data, req, transactionsSlug })=
             // Extract tenant from cart for multi-tenant support
             // @ts-expect-error - tenant field may be added by multi-tenant plugin
             const cartTenant = typeof cart.tenant === 'object' ? cart.tenant?.id : cart.tenant;
+            // Sanitize billing address: convert empty string title to null so Payload's select field validation passes
+            const sanitizedBillingAddress = billingAddressFromData && billingAddressFromData.title === '' ? {
+                ...billingAddressFromData,
+                title: null
+            } : billingAddressFromData;
             // Base transaction data shared between create and update paths
             const baseTransactionData = {
                 ...req.user ? {
@@ -94,7 +99,7 @@ export const initiatePayment = (props)=>async ({ data, req, transactionsSlug })=
                 } : {
                     customerEmail
                 },
-                billingAddress: billingAddressFromData,
+                billingAddress: sanitizedBillingAddress,
                 cart: cart.id,
                 items: flattenedCart,
                 paymentMethod: 'stripe',
