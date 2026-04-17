@@ -9,6 +9,18 @@ PayloadCMS compatibility.
 
 ---
 
+## Unreleased
+
+### Added
+
+- **Address title select options.**
+  - The address `title` field is now a `select` with three options: Sir, Madam, Other.
+  - Added translations for English (`addressTitleSir`, `addressTitleMadam`, `addressTitleOther`)
+    and French (`addressTitleSir` → "Monsieur", `addressTitleMadam` → "Madame", `addressTitleOther` → "Autre").
+  - Extended `PluginLanguage` translation type with optional keys for the new options.
+
+---
+
 ## [3.83.0] — 2026-04-15
 
 ### Fixed

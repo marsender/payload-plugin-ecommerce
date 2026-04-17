@@ -18,6 +18,9 @@ export declare const frTranslations: {
         addressPostalCode: string;
         addressState: string;
         addressTitle: string;
+        addressTitleSir: string;
+        addressTitleMadam: string;
+        addressTitleOther: string;
         amount: string;
         availableVariants: string;
         billing: string;

@@ -4,10 +4,30 @@ export const defaultAddressFields: () => Field[] = () => {
   return [
     {
       name: 'title',
-      type: 'text',
+      type: 'select',
       label: ({ t }) =>
         // @ts-expect-error - translations are not typed in plugins yet
         t('plugin-ecommerce:addressTitle'),
+      options: [
+        {
+          label: ({ t }) =>
+            // @ts-expect-error - translations are not typed in plugins yet
+            t('plugin-ecommerce:addressTitleSir'),
+          value: 'sir',
+        },
+        {
+          label: ({ t }) =>
+            // @ts-expect-error - translations are not typed in plugins yet
+            t('plugin-ecommerce:addressTitleMadam'),
+          value: 'madam',
+        },
+        {
+          label: ({ t }) =>
+            // @ts-expect-error - translations are not typed in plugins yet
+            t('plugin-ecommerce:addressTitleOther'),
+          value: 'other',
+        },
+      ],
     },
     {
       name: 'firstName',
