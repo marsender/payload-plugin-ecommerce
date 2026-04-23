@@ -8,6 +8,7 @@ export declare const useCurrency: () => {
     currency: Currency;
     formatCurrency: (value?: null | number, options?: {
         currency?: Currency;
+        locale?: string;
     }) => string;
     setCurrency: (currency: string) => void;
     supportedCurrencies: Currency[];

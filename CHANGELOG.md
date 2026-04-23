@@ -11,13 +11,49 @@ PayloadCMS compatibility.
 
 ## Unreleased
 
+---
+
+## [3.84.0] — 2026-04-22
+
 ### Added
 
-- **Address title select options.**
-  - The address `title` field is now a `select` with three options: Sir, Madam, Other.
-  - Added translations for English (`addressTitleSir`, `addressTitleMadam`, `addressTitleOther`)
-    and French (`addressTitleSir` → "Monsieur", `addressTitleMadam` → "Madame", `addressTitleOther` → "Autre").
-  - Extended `PluginLanguage` translation type with optional keys for the new options.
+- **Locale-aware currency formatting (upstream #15139).**
+  - New `formatPrice({ baseValue, currency, locale })` utility in `src/ui/utilities.ts`,
+    using `Intl.NumberFormat` for locale-correct currency output.
+  - New optional `symbolDisplay?: 'code' | 'symbol'` field on the `Currency` type.
+  - `useCurrency().formatCurrency` now accepts an optional `locale` option and respects
+    `currency.symbolDisplay`.
+
+### Changed
+
+- **PriceCell / PriceRowLabel migrated to `formatPrice`.** Both UI components now use
+  `Intl.NumberFormat` via `formatPrice`, picking up the admin panel locale from
+  `useTranslation().i18n.language`. This replaces the previous `convertFromBaseValue` +
+  manual symbol prefix.
+
+### Fixed
+
+- **Stripe `confirmOrder` now verifies `PaymentIntent.status === 'succeeded'` before
+  creating an order (upstream #15902).** Prevents orders from being created for
+  PaymentIntents that are still pending / require additional action / failed.
+
+### Fork deviations
+
+- **`formatCurrency` default locale**: upstream defaults to `'en'`; the fork keeps the
+  `undefined` default so `Intl.NumberFormat` falls back to the user's browser locale —
+  required for multi-language consuming apps (e.g. lemodule fr/en). Explicit `locale`
+  callers work identically to upstream.
+- **Upstream `confirmOrder.spec.ts` not ported.** The upstream test targets a
+  non-multi-tenant code path; the fork's `confirmOrder.ts` does per-tenant Stripe key
+  resolution above the status guard. Integration coverage for the fork lives in the
+  consuming application (lemodule).
+
+### Address title select options
+
+- The address `title` field is now a `select` with three options: Sir, Madam, Other.
+- Added translations for English (`addressTitleSir`, `addressTitleMadam`, `addressTitleOther`)
+  and French (`addressTitleSir` → "Monsieur", `addressTitleMadam` → "Madame", `addressTitleOther` → "Autre").
+- Extended `PluginLanguage` translation type with optional keys for the new options.
 
 ---
 

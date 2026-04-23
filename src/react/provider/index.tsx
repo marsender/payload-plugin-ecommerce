@@ -1256,7 +1256,7 @@ export const useCurrency = () => {
   const { currenciesConfig, currency, setCurrency } = useEcommerce()
 
   const formatCurrency = useCallback(
-    (value?: null | number, options?: { currency?: Currency }): string => {
+    (value?: null | number, options?: { currency?: Currency; locale?: string }): string => {
       if (value === undefined || value === null) {
         return ''
       }
@@ -1267,15 +1267,19 @@ export const useCurrency = () => {
         return value.toString()
       }
 
-      // Convert from base value (e.g., cents) to decimal value (e.g., dollars)
-      const decimalValue = value / Math.pow(10, currencyToUse.decimals)
+      const { code, decimals, symbolDisplay } = currencyToUse
 
-      // Format using locale-aware Intl.NumberFormat (symbol position and separators are locale-determined)
-      return new Intl.NumberFormat(undefined, {
+      // Convert from base value (e.g., cents) to decimal value (e.g., dollars)
+      const decimalValue = value / Math.pow(10, decimals)
+
+      // Fork deviation from upstream #15139: default locale stays `undefined` (browser default) instead of 'en',
+      // preserving current UX for multi-language consumers (e.g. lemodule fr/en).
+      return new Intl.NumberFormat(options?.locale, {
         style: 'currency',
-        currency: currencyToUse.code,
-        minimumFractionDigits: currencyToUse.decimals,
-        maximumFractionDigits: currencyToUse.decimals,
+        currency: code,
+        currencyDisplay: symbolDisplay || 'symbol',
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals,
       }).format(decimalValue)
     },
     [currency],

@@ -250,7 +250,7 @@ export type PaymentAdapterClient = {
 export type Currency = {
   /**
    * The ISO 4217 currency code
-   * @example 'usd'
+   * @example 'USD'
    */
   code: string
   /**
@@ -269,6 +269,11 @@ export type Currency = {
    * @example '$'
    */
   symbol: string
+  /**
+   * The display format for the currency symbol in formatted output.
+   * @example 'symbol'
+   */
+  symbolDisplay?: 'code' | 'symbol'
 }
 
 /**

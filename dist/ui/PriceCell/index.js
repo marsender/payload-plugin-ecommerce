@@ -1,9 +1,9 @@
 'use client';
-import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+import { jsx as _jsx } from "react/jsx-runtime";
 import { useTranslation } from '@payloadcms/ui';
-import { convertFromBaseValue } from '../utilities.js';
+import { formatPrice } from '../utilities.js';
 export const PriceCell = (args)=>{
-    const { t } = useTranslation();
+    const { i18n, t } = useTranslation();
     const { cellData, currenciesConfig, currency: currencyFromProps, rowData } = args;
     const currency = currencyFromProps || currenciesConfig.supportedCurrencies[0];
     if (!currency) {
@@ -24,14 +24,12 @@ export const PriceCell = (args)=>{
             children: t('plugin-ecommerce:priceNotSet')
         });
     }
-    return /*#__PURE__*/ _jsxs("span", {
-        children: [
-            currency.symbol,
-            convertFromBaseValue({
-                baseValue: cellData,
-                currency
-            })
-        ]
+    return /*#__PURE__*/ _jsx("span", {
+        children: formatPrice({
+            baseValue: cellData,
+            currency,
+            locale: i18n.language
+        })
     });
 };
 

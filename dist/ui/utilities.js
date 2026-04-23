@@ -22,5 +22,19 @@
     // Format with the correct number of decimal places
     return decimalValue.toFixed(currency.decimals);
 };
+/**
+ * Format a base value as a locale-aware currency string using the Intl API.
+ *
+ * @example formatPrice({ baseValue: 2500, currency: USD }) // "$25.00"
+ * @example formatPrice({ baseValue: 2500, currency: EUR, locale: 'de' }) // "25,00 €"
+ */ export const formatPrice = ({ baseValue, currency, locale = 'en' })=>{
+    return new Intl.NumberFormat(locale, {
+        currency: currency.code,
+        currencyDisplay: currency.symbolDisplay ?? 'symbol',
+        maximumFractionDigits: currency.decimals,
+        minimumFractionDigits: currency.decimals,
+        style: 'currency'
+    }).format(baseValue / Math.pow(10, currency.decimals));
+};
 
 //# sourceMappingURL=utilities.js.map

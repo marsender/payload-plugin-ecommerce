@@ -41,8 +41,10 @@ export const confirmOrder = (props)=>async ({ data, ordersSlug = 'orders', req, 
                 url: 'https://payloadcms.com'
             }
         });
-        // Verify the payment intent exists and retrieve it
         const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentID);
+        if (paymentIntent.status !== 'succeeded') {
+            throw new Error(`Payment not completed.`);
+        }
         const cartID = paymentIntent.metadata.cartID;
         const cartItemsSnapshot = paymentIntent.metadata.cartItemsSnapshot ? JSON.parse(paymentIntent.metadata.cartItemsSnapshot) : undefined;
         const shippingAddressRaw = paymentIntent.metadata.shippingAddress ? JSON.parse(paymentIntent.metadata.shippingAddress) : undefined;
