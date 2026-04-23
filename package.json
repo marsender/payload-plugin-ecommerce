@@ -1,6 +1,6 @@
 {
   "name": "@marsender/payload-plugin-ecommerce",
-  "version": "3.84.0",
+  "version": "3.84.1",
   "description": "Ecommerce plugin for Payload - Fork with custom enhancements for multi-tenant",
   "keywords": [
     "payload",
@@ -87,6 +87,15 @@
     "rimraf": "^6.1.3",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.56.1"
+  },
+  "engines": {
+    "node": "^18.20.2 || >=20.9.0",
+    "pnpm": "^9 || ^10"
+  },
+  "pnpm": {
+    "overrides": {
+      "dompurify": ">=3.4.0"
+    }
   },
   "peerDependencies": {
     "@payloadcms/translations": "^3.0.0",
