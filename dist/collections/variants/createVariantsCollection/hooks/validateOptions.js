@@ -14,6 +14,7 @@ export const validateOptions = (props)=>async (values, { data, req })=>{
             id: productID,
             collection: productsCollectionSlug,
             depth: 1,
+            req,
             joins: {
                 variants: {
                     where: {

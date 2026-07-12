@@ -22,6 +22,7 @@ import { APIError, parseCookies } from 'payload';
                 // Validate the tenant exists
                 const tenantExists = await req.payload.count({
                     collection: tenantsSlug,
+                    req,
                     where: {
                         id: {
                             equals: parsedTenantId
@@ -39,12 +40,13 @@ import { APIError, parseCookies } from 'payload';
         if (tenantDomain) {
             const tenants = await req.payload.find({
                 collection: tenantsSlug,
+                limit: 1,
+                req,
                 where: {
                     domain: {
                         equals: tenantDomain
                     }
-                },
-                limit: 1
+                }
             });
             if (tenants.docs.length > 0) {
                 data.tenant = tenants.docs[0].id;

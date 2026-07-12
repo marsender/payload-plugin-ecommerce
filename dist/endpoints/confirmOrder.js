@@ -42,6 +42,7 @@ import { addDataAndFileToRequest } from 'payload';
                     collection: cartsSlug,
                     depth: 2,
                     overrideAccess: false,
+                    req,
                     select: {
                         id: true,
                         currency: true,
@@ -93,6 +94,7 @@ import { addDataAndFileToRequest } from 'payload';
                     id: paymentResponse.transactionID,
                     collection: transactionsSlug,
                     depth: 0,
+                    req,
                     select: {
                         id: true,
                         items: true
@@ -109,7 +111,8 @@ import { addDataAndFileToRequest } from 'payload';
                                     inventory: {
                                         $inc: item.quantity * -1
                                     }
-                                }
+                                },
+                                req
                             });
                         } else if (item.product) {
                             const id = typeof item.product === 'object' ? item.product.id : item.product;
@@ -120,7 +123,8 @@ import { addDataAndFileToRequest } from 'payload';
                                     inventory: {
                                         $inc: item.quantity * -1
                                     }
-                                }
+                                },
+                                req
                             });
                         }
                     }

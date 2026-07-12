@@ -10,6 +10,7 @@ export const confirmOrder = (props)=>async ({ data, ordersSlug = 'orders', req, 
         // Find our existing transaction by the payment intent ID
         const transactionsResults = await payload.find({
             collection: transactionsSlug,
+            req,
             where: {
                 'stripe.paymentIntentID': {
                     equals: paymentIntentID
@@ -65,6 +66,7 @@ export const confirmOrder = (props)=>async ({ data, ordersSlug = 'orders', req, 
         const cart = await payload.findByID({
             collection: 'carts',
             id: cartID,
+            req,
             select: {
                 id: true,
                 tenant: true
@@ -96,7 +98,8 @@ export const confirmOrder = (props)=>async ({ data, ordersSlug = 'orders', req, 
                     transaction.id
                 ],
                 tenant: cartTenant
-            }
+            },
+            req
         });
         const timestamp = new Date().toISOString();
         await payload.update({
@@ -104,7 +107,8 @@ export const confirmOrder = (props)=>async ({ data, ordersSlug = 'orders', req, 
             collection: 'carts',
             data: {
                 purchasedAt: timestamp
-            }
+            },
+            req
         });
         await payload.update({
             id: transaction.id,
@@ -112,7 +116,8 @@ export const confirmOrder = (props)=>async ({ data, ordersSlug = 'orders', req, 
             data: {
                 order: order.id,
                 status: 'succeeded'
-            }
+            },
+            req
         });
         return {
             message: 'Payment initiated successfully',

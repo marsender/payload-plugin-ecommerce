@@ -26,6 +26,7 @@ export const validateOptions: (props?: Props) => Validate =
       id: productID,
       collection: productsCollectionSlug,
       depth: 1,
+      req,
       joins: {
         variants: {
           where: {

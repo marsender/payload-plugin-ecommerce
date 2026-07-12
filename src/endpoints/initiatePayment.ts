@@ -95,6 +95,7 @@ export const initiatePaymentHandler: InitiatePayment =
 					collection: cartsSlug,
 					depth: 2,
 					overrideAccess: false,
+					req,
 					select: {
 						id: true,
 						currency: true,
@@ -181,6 +182,7 @@ export const initiatePaymentHandler: InitiatePayment =
 					id,
 					collection: productsSlug,
 					depth: 0,
+					req,
 					select: {
 						inventory: true,
 						[priceField]: true,
@@ -230,6 +232,7 @@ export const initiatePaymentHandler: InitiatePayment =
 						id,
 						collection: variantsSlug,
 						depth: 0,
+						req,
 						select: {
 							inventory: true,
 							[priceField]: true,

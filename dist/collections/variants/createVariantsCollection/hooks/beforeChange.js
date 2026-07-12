@@ -6,6 +6,7 @@ export const variantsCollectionBeforeChange = ({ productsSlug, variantOptionsSlu
                 id: productID,
                 collection: productsSlug,
                 depth: 0,
+                req,
                 select: {
                     title: true,
                     variantTypes: true
@@ -19,6 +20,7 @@ export const variantsCollectionBeforeChange = ({ productsSlug, variantOptionsSlu
                     id: option,
                     collection: variantOptionsSlug,
                     depth: 0,
+                    req,
                     select: {
                         label: true
                     }

@@ -23,6 +23,7 @@ export const beforeChangeCart = ({ productsSlug, variantsSlug })=>async ({ data,
                         id,
                         collection: variantsSlug,
                         depth: 0,
+                        req,
                         select: {
                             [priceField]: true
                         }
@@ -35,6 +36,7 @@ export const beforeChangeCart = ({ productsSlug, variantsSlug })=>async ({ data,
                         id,
                         collection: productsSlug,
                         depth: 0,
+                        req,
                         select: {
                             billingInterval: true,
                             [priceField]: true

@@ -36,6 +36,7 @@ export const beforeChangeCart: (args: Props) => CollectionBeforeChangeHook =
             id,
             collection: variantsSlug,
             depth: 0,
+            req,
             select: {
               [priceField]: true,
             },
@@ -50,6 +51,7 @@ export const beforeChangeCart: (args: Props) => CollectionBeforeChangeHook =
             id,
             collection: productsSlug,
             depth: 0,
+            req,
             select: {
               billingInterval: true,
               [priceField]: true,

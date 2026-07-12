@@ -228,6 +228,10 @@ This fork includes the following enhancements:
 
 - **Multi-tenant cart support**: Added `multiTenant` option to carts configuration. When enabled, carts have a `tenant` field that is auto-populated from cookies, and admin access is scoped by tenant. This allows tenant isolation in the admin panel while still supporting guest cart access via secret tokens. Use this instead of adding carts to the multi-tenant plugin's collections list.
 
+- **Every Payload call threads `req`**: Local-API calls that run inside a request (hooks, endpoints, payment adapters) all pass `req`, so they join the request's database transaction. A call without `req` takes a fresh pooled connection in a transaction of its own: it cannot see the request's uncommitted writes, it commits even when the request rolls back, and it can deadlock against rows the request has already locked. This is enforced by a `no-restricted-syntax` ESLint rule in `eslint.config.ts` that fails the build on any `payload.*` / `payload.db.*` call whose argument object has no `req` (a conditional spread opts out, marking a deliberate omission).
+
+  Two places diverge from upstream as a result. `endpoints/confirmOrder.ts` — upstream decrements inventory (`payload.db.updateOne`) and reads the transaction and cart without `req`, so stock can be decremented in a transaction that outlives a failed order; this fork passes `req` throughout. `collections/carts/beforeChange.ts` and the variants hooks likewise pass `req` on their price and option lookups, so a cart subtotal is computed from prices the enclosing transaction actually sees.
+
 ## What's New in 3.71.1
 
 Synchronized with PayloadCMS plugin-ecommerce v3.71.1:

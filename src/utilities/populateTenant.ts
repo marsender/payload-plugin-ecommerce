@@ -35,6 +35,7 @@ export const populateTenant: (props: Props) => CollectionBeforeChangeHook =
         // Validate the tenant exists
         const tenantExists = await req.payload.count({
           collection: tenantsSlug,
+          req,
           where: { id: { equals: parsedTenantId } },
         })
 
@@ -51,8 +52,9 @@ export const populateTenant: (props: Props) => CollectionBeforeChangeHook =
     if (tenantDomain) {
       const tenants = await req.payload.find({
         collection: tenantsSlug,
-        where: { domain: { equals: tenantDomain } },
         limit: 1,
+        req,
+        where: { domain: { equals: tenantDomain } },
       })
 
       if (tenants.docs.length > 0) {

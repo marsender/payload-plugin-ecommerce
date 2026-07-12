@@ -14,6 +14,7 @@ export const VariantOptionsSelector = async (props)=>{
         collection: productsSlug,
         depth: 0,
         draft: true,
+        req,
         select: {
             variants: true,
             variantTypes: true
@@ -37,7 +38,8 @@ export const VariantOptionsSelector = async (props)=>{
                     options: {
                         sort: 'value'
                     }
-                }
+                },
+                req
             });
             if (variantType) {
                 variantTypes.push(variantType);

@@ -90,6 +90,7 @@ export const confirmOrderHandler: ConfirmOrderHandler =
 					collection: cartsSlug,
 					depth: 2,
 					overrideAccess: false,
+					req,
 					select: {
 						id: true,
 						currency: true,
@@ -155,6 +156,7 @@ export const confirmOrderHandler: ConfirmOrderHandler =
 					id: paymentResponse.transactionID,
 					collection: transactionsSlug,
 					depth: 0,
+					req,
 					select: {
 						id: true,
 						items: true,
@@ -174,6 +176,7 @@ export const confirmOrderHandler: ConfirmOrderHandler =
 										$inc: item.quantity * -1,
 									},
 								},
+								req,
 							})
 						} else if (item.product) {
 							const id = typeof item.product === 'object' ? item.product.id : item.product
@@ -186,6 +189,7 @@ export const confirmOrderHandler: ConfirmOrderHandler =
 										$inc: item.quantity * -1,
 									},
 								},
+								req,
 							})
 						}
 					}

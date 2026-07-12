@@ -25,6 +25,7 @@ export const confirmOrder: (props: Props) => NonNullable<PaymentAdapter>['confir
 		// Find our existing transaction by the payment intent ID
 		const transactionsResults = await payload.find({
 			collection: transactionsSlug,
+			req,
 			where: {
 				'stripe.paymentIntentID': {
 					equals: paymentIntentID,
@@ -90,6 +91,7 @@ export const confirmOrder: (props: Props) => NonNullable<PaymentAdapter>['confir
 		const cart = await payload.findByID({
 			collection: 'carts',
 			id: cartID,
+			req,
 			select: {
 				id: true,
 				tenant: true,
@@ -120,6 +122,7 @@ export const confirmOrder: (props: Props) => NonNullable<PaymentAdapter>['confir
 				transactions: [transaction.id],
 				tenant: cartTenant,
 			},
+			req,
 		})
 
 		const timestamp = new Date().toISOString()
@@ -130,6 +133,7 @@ export const confirmOrder: (props: Props) => NonNullable<PaymentAdapter>['confir
 			data: {
 				purchasedAt: timestamp,
 			},
+			req,
 		})
 
 		await payload.update({
@@ -139,6 +143,7 @@ export const confirmOrder: (props: Props) => NonNullable<PaymentAdapter>['confir
 				order: order.id,
 				status: 'succeeded',
 			},
+			req,
 		})
 
 		return {

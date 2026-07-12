@@ -45,6 +45,7 @@ import { defaultProductsValidation } from '../utilities/defaultProductsValidatio
                     collection: cartsSlug,
                     depth: 2,
                     overrideAccess: false,
+                    req,
                     select: {
                         id: true,
                         currency: true,
@@ -108,6 +109,7 @@ import { defaultProductsValidation } from '../utilities/defaultProductsValidatio
                     id,
                     collection: productsSlug,
                     depth: 0,
+                    req,
                     select: {
                         inventory: true,
                         [priceField]: true
@@ -153,6 +155,7 @@ import { defaultProductsValidation } from '../utilities/defaultProductsValidatio
                         id,
                         collection: variantsSlug,
                         depth: 0,
+                        req,
                         select: {
                             inventory: true,
                             [priceField]: true
