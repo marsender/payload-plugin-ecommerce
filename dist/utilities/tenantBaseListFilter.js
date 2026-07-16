@@ -27,9 +27,13 @@ import { parseCookies } from 'payload';
         const cookies = parseCookies(req.headers);
         const selectedTenant = cookies.get('payload-tenant');
         const selectedTenantId = selectedTenant ? Number(selectedTenant) || selectedTenant : null;
-        // Check super-admin FIRST (before other checks)
+        // Check super-admin FIRST (before other checks).
+        // Two conventions are supported: a global `roles` select containing one of
+        // `superAdminRoles`, and a boolean `isSuperAdmin` field (used by hosts that
+        // replaced the roles select with a checkbox). Either grants full access.
         const roles = user.roles;
-        if (roles?.some((role)=>superAdminRoles.includes(role))) {
+        const isSuperAdmin = user.isSuperAdmin === true || Boolean(roles?.some((role)=>superAdminRoles.includes(role)));
+        if (isSuperAdmin) {
             // Super-admins: filter by selected tenant if one is chosen
             if (selectedTenantId) {
                 return {
