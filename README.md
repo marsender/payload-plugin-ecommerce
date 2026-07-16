@@ -232,6 +232,8 @@ This fork includes the following enhancements:
 
   Two places diverge from upstream as a result. `endpoints/confirmOrder.ts` — upstream decrements inventory (`payload.db.updateOne`) and reads the transaction and cart without `req`, so stock can be decremented in a transaction that outlives a failed order; this fork passes `req` throughout. `collections/carts/beforeChange.ts` and the variants hooks likewise pass `req` on their price and option lookups, so a cart subtotal is computed from prices the enclosing transaction actually sees.
 
+- **Cart items survive product deletion**: Deleting a product (or variant) nulls the cart item's relation (`ON DELETE SET NULL`), and the cart `beforeChange` hook used to crash on any subsequent cart update — `typeof null === 'object'`, so extracting the ID read `null.id`. The hook now silently drops such dead items when recomputing the subtotal, the same way it excludes recurring subscription products.
+
 ## What's New in 3.71.1
 
 Synchronized with PayloadCMS plugin-ecommerce v3.71.1:

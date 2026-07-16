@@ -44,7 +44,7 @@ export const beforeChangeCart: (args: Props) => CollectionBeforeChangeHook =
 
           filteredItems.push(item)
           subtotal += variant[priceField] * item.quantity
-        } else {
+        } else if (item.product) {
           const id = typeof item.product === 'object' ? item.product.id : item.product
 
           const product = await req.payload.findByID({
@@ -68,6 +68,11 @@ export const beforeChangeCart: (args: Props) => CollectionBeforeChangeHook =
 
           filteredItems.push(item)
           subtotal += product[priceField] * item.quantity
+        } else {
+          // Deleting a product/variant nulls the relation (FK ON DELETE SET NULL),
+          // leaving a dead item. Silently drop it — reading `.id` on the null
+          // relation (`typeof null === 'object'`) used to crash every cart update.
+          req.payload.logger.info('[cart] Dropping cart item whose product was deleted')
         }
       }
 
