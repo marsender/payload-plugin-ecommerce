@@ -11,6 +11,23 @@ PayloadCMS compatibility.
 
 ## Unreleased
 
+### Fixed
+
+- **Stripe `initiatePayment` no longer creates duplicate transactions for concurrent requests.**
+  The customer lookup, pending-transaction lookup, PaymentIntent reuse/creation and transaction
+  write now run under `withCartLock` (new export), a Postgres transaction-scoped advisory lock on
+  the cart, keyed on the id's string form. Waiters poll `pg_try_advisory_xact_lock` and release
+  their connection between attempts, and time out after 30 s, so queued waiters cannot exhaust the
+  pool. `resolveConnectedAccount` now runs before the lock. The dead `id`-conflict fallback on
+  create is removed.
+- **Stripe `initiatePayment` reuses an existing PaymentIntent only when it describes the same
+  payment** (amount, currency, customer, Connect destination, adapter-owned metadata), via the new
+  `classifyExistingPaymentIntent` export; a mismatched payable intent is cancelled and replaced.
+  Previously a refilled cart could be charged the old amount for the old items.
+- **Stripe `initiatePayment` refuses to start a payment while the cart's pending transaction holds
+  a `succeeded`, `processing` or `requires_capture` PaymentIntent**, instead of overwriting its
+  `paymentIntentID` (orphaning a completed charge) or failing on a `processing` cancel.
+
 ---
 
 ## [3.84.0] — 2026-04-22

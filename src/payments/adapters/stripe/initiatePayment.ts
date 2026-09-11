@@ -3,19 +3,15 @@ import Stripe from 'stripe'
 import type { PaymentAdapter } from '../../../types/index.js'
 import type { InitiatePaymentReturnType, ResolveConnectedAccountFn, StripeAdapterArgs } from './index.js'
 
+import { withCartLock } from '../../../utilities/withCartLock.js'
+import { classifyExistingPaymentIntent } from './classifyExistingPaymentIntent.js'
+
 type Props = {
 	apiVersion?: Stripe.StripeConfig['apiVersion']
 	appInfo?: Stripe.StripeConfig['appInfo']
 	resolveConnectedAccount?: ResolveConnectedAccountFn
 	secretKey: StripeAdapterArgs['secretKey']
 }
-
-// Stripe PaymentIntent statuses that are still usable for payment
-const REUSABLE_PAYMENT_INTENT_STATUSES: Stripe.PaymentIntent['status'][] = [
-	'requires_payment_method',
-	'requires_confirmation',
-	'requires_action',
-]
 
 export const initiatePayment: (props: Props) => NonNullable<PaymentAdapter>['initiatePayment'] =
 	(props) =>
@@ -69,47 +65,44 @@ export const initiatePayment: (props: Props) => NonNullable<PaymentAdapter>['ini
 		})
 
 		try {
-			let customer = (
-				await stripe.customers.list({
-					email: customerEmail,
-				})
-			).data[0]
-
-			if (!customer?.id) {
-				customer = await stripe.customers.create({
-					email: customerEmail,
-				})
-			}
-
 			const flattenedCart = cart.items.map((item) => {
-			const productID = typeof item.product === 'object' ? item.product.id : item.product
-			const variantID =
-				item.variant ?
-					typeof item.variant === 'object' ?
-						item.variant.id
-					:	item.variant
-				:	undefined
+				const productID = typeof item.product === 'object' ? item.product.id : item.product
+				const variantID =
+					item.variant ?
+						typeof item.variant === 'object' ?
+							item.variant.id
+						:	item.variant
+					:	undefined
 
-			// Preserve any additional custom properties (e.g., deliveryOption, customizations)
-			// that may have been added via cartItemMatcher.
-			// Exclude 'id' so Payload generates new IDs for transaction items instead of
-			// reusing cart item IDs, which would cause uniqueness violations on retry.
-			const { id: _id, product: _product, variant: _variant, ...customProperties } = item
+				// Preserve any additional custom properties (e.g., deliveryOption, customizations)
+				// that may have been added via cartItemMatcher.
+				// Exclude 'id' so Payload generates new IDs for transaction items instead of
+				// reusing cart item IDs, which would cause uniqueness violations on retry.
+				const { id: _id, product: _product, variant: _variant, ...customProperties } = item
 
-			return {
-				...customProperties,
-				product: productID,
-				quantity: item.quantity,
-				...(variantID ? { variant: variantID } : {}),
-			}
-		})
+				return {
+					...customProperties,
+					product: productID,
+					quantity: item.quantity,
+					...(variantID ? { variant: variantID } : {}),
+				}
+			})
 
-			const shippingAddressAsString = JSON.stringify(shippingAddressFromData)
-
-			// Resolve the connected account ID if the resolver function is provided
+			// Resolved before the lock: it depends only on the cart, and it is application code that
+			// may reach the database on a connection of its own — which, under the lock, would be a
+			// second pooled connection held for the length of the Stripe exchange.
 			let connectedAccountId: string | undefined
 			if (resolveConnectedAccount) {
 				connectedAccountId = await resolveConnectedAccount({ cart, req })
+			}
+
+			// Every key the adapter owns, `undefined` when absent: this is both what a new PaymentIntent
+			// carries and what an existing one must match to be reused.
+			const metadata = {
+				cartID: cart.id,
+				cartItemsSnapshot: JSON.stringify(flattenedCart),
+				connectedAccountId,
+				shippingAddress: JSON.stringify(shippingAddressFromData),
 			}
 
 			// Extract tenant from cart for multi-tenant support
@@ -133,180 +126,170 @@ export const initiatePayment: (props: Props) => NonNullable<PaymentAdapter>['ini
 				...(cartTenant && { tenant: cartTenant }),
 			}
 
-			// Look for an existing pending transaction for this cart to avoid creating duplicates
-			const existingTransactions = await payload.find({
-				collection: transactionsSlug,
-				where: {
-					and: [
-						{ cart: { equals: cart.id } },
-						{ status: { equals: 'pending' } },
-						{ paymentMethod: { equals: 'stripe' } },
-					],
-				},
-				limit: 1,
-				depth: 0,
-				overrideAccess: true,
-				req,
-			})
+			// Serialize concurrent initiations for the same cart. Without the lock, two requests
+			// arriving together (a double-fired client effect was seen in production) both find no
+			// pending transaction and both create one: two transactions, two PaymentIntents and two
+			// Stripe customers for a single purchase. Under the lock the second request runs after the
+			// first has committed, and finds its customer and pending transaction.
+			// Every database call below passes `req` so it runs inside the lock's transaction.
+			return await withCartLock(req, cart.id, async () => {
+				let customer = (
+					await stripe.customers.list({
+						email: customerEmail,
+					})
+				).data[0]
 
-			const existingTransaction = existingTransactions.docs[0] ?? null
+				if (!customer?.id) {
+					customer = await stripe.customers.create({
+						email: customerEmail,
+					})
+				}
 
-			// If an existing pending transaction is found, try to reuse its PaymentIntent
-			if (existingTransaction) {
+				// Look for an existing pending transaction for this cart to avoid creating duplicates
+				const existingTransactions = await payload.find({
+					collection: transactionsSlug,
+					where: {
+						and: [
+							{ cart: { equals: cart.id } },
+							{ status: { equals: 'pending' } },
+							{ paymentMethod: { equals: 'stripe' } },
+						],
+					},
+					limit: 1,
+					depth: 0,
+					overrideAccess: true,
+					req,
+				})
+
+				const existingTransaction = existingTransactions.docs[0] ?? null
+
+				if (existingTransaction) {
 					const existingPaymentIntentID: string | undefined = (existingTransaction as Record<string, Record<string, string>>).stripe?.paymentIntentID
 
-				if (existingPaymentIntentID) {
-					let existingPaymentIntent: Stripe.PaymentIntent | null = null
-					try {
-						existingPaymentIntent = await stripe.paymentIntents.retrieve(existingPaymentIntentID)
-					} catch (stripeError) {
-						// PaymentIntent no longer exists in Stripe (e.g. stale DB record, env mismatch) — fall through to create a new one.
-						// Use duck-typing instead of instanceof: class checks are unreliable in bundled/minified environments.
-						const isResourceMissing =
-							stripeError !== null &&
-							typeof stripeError === 'object' &&
-							'code' in stripeError &&
-							(stripeError as { code: string }).code === 'resource_missing'
-						if (!isResourceMissing) {
-							throw stripeError
+					if (existingPaymentIntentID) {
+						let existingPaymentIntent: Stripe.PaymentIntent | null = null
+						try {
+							existingPaymentIntent = await stripe.paymentIntents.retrieve(existingPaymentIntentID)
+						} catch (stripeError) {
+							// PaymentIntent no longer exists in Stripe (e.g. stale DB record, env mismatch) — fall through to create a new one.
+							// Use duck-typing instead of instanceof: class checks are unreliable in bundled/minified environments.
+							const isResourceMissing =
+								stripeError !== null &&
+								typeof stripeError === 'object' &&
+								'code' in stripeError &&
+								(stripeError as { code: string }).code === 'resource_missing'
+							if (!isResourceMissing) {
+								throw stripeError
+							}
+						}
+
+						if (existingPaymentIntent) {
+							const verdict = classifyExistingPaymentIntent(existingPaymentIntent, {
+								amount,
+								connectedAccountId,
+								currency,
+								customerID: customer.id,
+								metadata,
+							})
+
+							if (verdict.action === 'refuse') {
+								// The transaction keeps pointing at this PaymentIntent, so the payment stays
+								// reconcilable (confirmOrder, or by hand) instead of being orphaned.
+								throw new Error(
+									`Refusing to initiate a new payment for cart ${String(cart.id)}: ${verdict.reason} (PaymentIntent ${existingPaymentIntent.id}, transaction ${String(existingTransaction.id)}).`,
+								)
+							}
+
+							if (verdict.action === 'reuse') {
+								await payload.update({
+									id: existingTransaction.id,
+									collection: transactionsSlug,
+									req,
+									data: {
+										...baseTransactionData,
+										amount: existingPaymentIntent.amount,
+										currency: existingPaymentIntent.currency.toUpperCase(),
+										stripe: {
+											customerID: customer.id,
+											paymentIntentID: existingPaymentIntent.id,
+											...(connectedAccountId && { connectedAccountId }),
+										},
+									},
+								})
+
+								return {
+									clientSecret: existingPaymentIntent.client_secret || '',
+									message: 'Payment initiated successfully',
+									paymentIntentID: existingPaymentIntent.id,
+								} satisfies InitiatePaymentReturnType
+							}
+
+							// Still payable but for a different payment (amount, items, account…): cancel it,
+							// or the buyer would keep a second, stale way to pay for this cart.
+							if (verdict.cancel) {
+								await stripe.paymentIntents.cancel(existingPaymentIntent.id)
+							}
 						}
 					}
+				}
 
-					if (existingPaymentIntent && REUSABLE_PAYMENT_INTENT_STATUSES.includes(existingPaymentIntent.status)) {
-						// Reuse the existing PaymentIntent: update the transaction with fresh cart data
-						await payload.update({
-							id: existingTransaction.id,
-							collection: transactionsSlug,
-							req,
-							data: {
-								...baseTransactionData,
-								amount: existingPaymentIntent.amount,
-								currency: existingPaymentIntent.currency.toUpperCase(),
-								stripe: {
-									customerID: customer.id,
-									paymentIntentID: existingPaymentIntent.id,
-									...(connectedAccountId && { connectedAccountId }),
-								},
-							},
-						})
+				const paymentIntentParams: Stripe.PaymentIntentCreateParams = {
+					amount,
+					automatic_payment_methods: {
+						enabled: true,
+					},
+					currency,
+					customer: customer.id,
+					metadata: {
+						cartID: metadata.cartID,
+						cartItemsSnapshot: metadata.cartItemsSnapshot,
+						shippingAddress: metadata.shippingAddress,
+						...(connectedAccountId && { connectedAccountId }),
+					},
+				}
 
-						return {
-							clientSecret: existingPaymentIntent.client_secret || '',
-							message: 'Payment initiated successfully',
-							paymentIntentID: existingPaymentIntent.id,
-						} satisfies InitiatePaymentReturnType
-					}
-
-					// Cancel the existing PaymentIntent if it is no longer usable
-					if (existingPaymentIntent && !['canceled', 'succeeded'].includes(existingPaymentIntent.status)) {
-						await stripe.paymentIntents.cancel(existingPaymentIntentID)
+				// Add Stripe Connect transfer_data if a connected account is resolved
+				if (connectedAccountId) {
+					paymentIntentParams.transfer_data = {
+						destination: connectedAccountId,
 					}
 				}
-			}
 
-			// Build the PaymentIntent create params
-			const paymentIntentParams: Stripe.PaymentIntentCreateParams = {
-				amount,
-				automatic_payment_methods: {
-					enabled: true,
-				},
-				currency,
-				customer: customer.id,
-				metadata: {
-					cartID: cart.id,
-					cartItemsSnapshot: JSON.stringify(flattenedCart),
-					shippingAddress: shippingAddressAsString,
-					...(connectedAccountId && { connectedAccountId }),
-				},
-			}
+				const paymentIntent = await stripe.paymentIntents.create(paymentIntentParams)
 
-			// Add Stripe Connect transfer_data if a connected account is resolved
-			if (connectedAccountId) {
-				paymentIntentParams.transfer_data = {
-					destination: connectedAccountId,
+				const fullTransactionData = {
+					...baseTransactionData,
+					amount: paymentIntent.amount,
+					currency: paymentIntent.currency.toUpperCase(),
+					stripe: {
+						customerID: customer.id,
+						paymentIntentID: paymentIntent.id,
+						...(connectedAccountId && { connectedAccountId }),
+					},
 				}
-			}
 
-			const paymentIntent = await stripe.paymentIntents.create(paymentIntentParams)
-
-			const fullTransactionData = {
-				...baseTransactionData,
-				amount: paymentIntent.amount,
-				currency: paymentIntent.currency.toUpperCase(),
-				stripe: {
-					customerID: customer.id,
-					paymentIntentID: paymentIntent.id,
-					...(connectedAccountId && { connectedAccountId }),
-				},
-			}
-
-			if (existingTransaction) {
-				// Update the existing transaction with the new PaymentIntent
-				await payload.update({
-					id: existingTransaction.id,
-					collection: transactionsSlug,
-					req,
-					data: fullTransactionData,
-				})
-			} else {
-				// Create a new transaction for the payment intent.
-				// Wrap in try/catch to handle race conditions: if a concurrent request created
-				// the transaction between our find() check and this create(), catch the id
-				// uniqueness error and fall back to updating the now-existing transaction.
-				try {
+				if (existingTransaction) {
+					// Update the existing transaction with the new PaymentIntent
+					await payload.update({
+						id: existingTransaction.id,
+						collection: transactionsSlug,
+						req,
+						data: fullTransactionData,
+					})
+				} else {
 					await payload.create({
 						collection: transactionsSlug,
 						req,
 						data: fullTransactionData,
 					})
-				} catch (createError) {
-					const isIdConflict =
-						createError !== null &&
-						typeof createError === 'object' &&
-						'data' in createError &&
-						typeof (createError as { data: unknown }).data === 'object' &&
-						(createError as { data: { errors?: { path: string }[] } }).data?.errors?.some(
-							(e) => e.path === 'id',
-						)
-
-					if (!isIdConflict) {
-						throw createError
-					}
-
-					// Race condition: find the transaction that was created by the concurrent request
-					const raceTransaction = await payload.find({
-						collection: transactionsSlug,
-						where: {
-							and: [
-								{ cart: { equals: cart.id } },
-								{ status: { equals: 'pending' } },
-								{ paymentMethod: { equals: 'stripe' } },
-							],
-						},
-						limit: 1,
-						depth: 0,
-						overrideAccess: true,
-						req,
-					})
-
-					if (raceTransaction.docs[0]) {
-						await payload.update({
-							id: raceTransaction.docs[0].id,
-							collection: transactionsSlug,
-							req,
-							data: fullTransactionData,
-						})
-					} else {
-						throw createError
-					}
 				}
-			}
 
-			return {
-				clientSecret: paymentIntent.client_secret || '',
-				message: 'Payment initiated successfully',
-				paymentIntentID: paymentIntent.id,
-			} satisfies InitiatePaymentReturnType
+				return {
+					clientSecret: paymentIntent.client_secret || '',
+					message: 'Payment initiated successfully',
+					paymentIntentID: paymentIntent.id,
+				} satisfies InitiatePaymentReturnType
+			})
 		} catch (error) {
 			payload.logger.error(error, 'Error initiating payment with Stripe')
 

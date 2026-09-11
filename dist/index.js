@@ -265,5 +265,6 @@ export { mergeCart } from './collections/carts/operations/mergeCart.js';
 export { removeItem } from './collections/carts/operations/removeItem.js';
 export { updateItem } from './collections/carts/operations/updateItem.js';
 export { isNumericOperator } from './collections/carts/operations/types.js';
+export { withCartLock } from './utilities/withCartLock.js';
 
 //# sourceMappingURL=index.js.map
