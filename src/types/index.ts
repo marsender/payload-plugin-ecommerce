@@ -938,7 +938,9 @@ type CartItemArgument = {
 
 export type EcommerceContextType<T extends EcommerceCollections = EcommerceCollections> = {
   /**
-   * Add an item to the cart.
+   * Add an item to the cart, creating the cart when there is none or when the stored one no longer
+   * exists. Rejects when the item could not be added.
+   * Note: rejecting is fork-specific; the original PayloadCMS plugin resolves either way.
    */
   addItem: (item: CartItemArgument, quantity?: number) => Promise<void>
   /**
@@ -955,7 +957,8 @@ export type EcommerceContextType<T extends EcommerceCollections = EcommerceColle
    */
   cartID?: DefaultDocumentIDType
   /**
-   * Clear the cart, removing all items.
+   * Clear the cart, removing all items. Resolves when there is no cart left to clear; rejects when
+   * the clear failed (fork-specific, see `addItem`).
    */
   clearCart: () => Promise<void>
   /**
@@ -996,10 +999,12 @@ export type EcommerceContextType<T extends EcommerceCollections = EcommerceColle
   /**
    * Decrement an item in the cart by its index ID.
    * If quantity reaches 0, the item will be removed from the cart.
+   * Rejects when the update failed (fork-specific, see `addItem`).
    */
   decrementItem: (item: number | string) => Promise<void>
   /**
    * Increment an item in the cart by its index ID.
+   * Rejects when the update failed (fork-specific, see `addItem`).
    */
   incrementItem: (item: number | string) => Promise<void>
   /**
@@ -1052,6 +1057,7 @@ export type EcommerceContextType<T extends EcommerceCollections = EcommerceColle
   refreshUser: () => Promise<void>
   /**
    * Remove an item from the cart by its index ID.
+   * Rejects when the removal failed (fork-specific, see `addItem`).
    */
   removeItem: (item: number | string) => Promise<void>
   /**

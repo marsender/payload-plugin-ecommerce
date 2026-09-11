@@ -9,6 +9,24 @@ PayloadCMS compatibility.
 
 ---
 
+## [3.89.1] — 2026-09-11
+
+### Fixed
+
+- **Cart operations reject when they fail.** `addItem`, `removeItem`, `incrementItem`,
+  `decrementItem` and `clearCart` caught every error and logged it only under `debug`, so the
+  promise resolved whether or not the write happened, and a storefront confirmed "added to cart"
+  for an item that never reached the cart. They now reject. A refresh that fails after a
+  successful write still resolves, since a retry would repeat the write. Callers that relied on
+  these never rejecting must now handle the rejection. Deviation from upstream, which still
+  swallows.
+- **A cart that no longer exists is forgotten instead of failing every later operation.** The item
+  endpoints answer a missing cart with a 404, which the provider turned into a (swallowed) error
+  before its own "cart not found" branch could run, so the stale cart id was kept forever. The
+  cart state is now reset: `addItem` starts a new cart with the item, the other operations
+  resolve. A 404 whose body still carries the cart (the cart exists, only the item is already
+  gone, e.g. a double click on remove) keeps the cart and refreshes it instead.
+
 ## [3.86.10] — 2026-09-10
 
 ### Fixed

@@ -76,6 +76,26 @@ const defaultLocalStorage = {
   key: 'cart',
 }
 
+/**
+ * Whether a 404 from a cart item endpoint still describes an existing cart.
+ *
+ * The endpoints answer two different things with a 404. When the cart exists and only the item is
+ * gone (`remove-item` / `update-item` on a row already removed) the body carries that cart. When
+ * the cart itself is unreachable, `findByID` throws `NotFound` before the operation can build a
+ * body, so Payload answers with `{ errors }` and no cart at all.
+ */
+const describesExistingCart = async (response: Response): Promise<boolean> => {
+  const body: unknown = await response.json().catch(() => null)
+
+  return (
+    typeof body === 'object' &&
+    body !== null &&
+    'cart' in body &&
+    typeof body.cart === 'object' &&
+    body.cart !== null
+  )
+}
+
 export const EcommerceProvider: React.FC<ContextProps> = ({
   addressesSlug = 'addresses',
   api,
@@ -329,59 +349,95 @@ export const EcommerceProvider: React.FC<ContextProps> = ({
     }
   }, [cartID, cartSecret, localStorageConfig.key, syncLocalStorage])
 
+  /**
+   * Forget the cart this session points at. localStorage follows through the persist effect above.
+   */
+  const resetCartState = useCallback(() => {
+    setCartID(undefined)
+    setCart(undefined)
+    setCartSecret(undefined)
+  }, [])
+
+  /**
+   * POST one of the cart item endpoints, then refresh the cart with the populate settings the UI
+   * reads.
+   *
+   * Fork deviation from upstream: upstream wraps every cart operation in a catch that only logs
+   * under `debug`, so the promise resolves whether or not the write happened, and a storefront
+   * confirms an add that never reached the cart. Here a failed write rejects.
+   *
+   * A 404 is not an error, and means one of two things (see `describesExistingCart`):
+   * - The cart this session points at no longer exists for it (deleted, or not readable by the
+   *   current user). Upstream turned that into a thrown error before its own "cart not found, reset
+   *   state" branch could run, so the stale id was kept and every later operation failed against
+   *   it. The state is reset instead, and each operation decides what a missing cart means for it.
+   * - The cart exists but the item is already gone: a double click on remove, a decrement racing
+   *   the one that removed the line, another tab. Resetting there would drop a cart that still
+   *   exists, and with it a guest's only secret. The item is already out of the cart, so the cart
+   *   is refreshed to show what is really in it.
+   *
+   * A refresh that fails after a successful write does not reject: the write is what the caller
+   * asked about, and rejecting would invite a retry that repeats it.
+   */
+  const postCartOperation = useCallback(
+    async (
+      targetCartID: DefaultDocumentIDType,
+      operation: 'add-item' | 'clear' | 'remove-item' | 'update-item',
+      body: Record<string, unknown>,
+    ): Promise<'done' | 'missing'> => {
+      const response = await fetch(`${baseAPIURL}/${cartsSlug}/${targetCartID}/${operation}`, {
+        body: JSON.stringify({
+          ...body,
+          secret: cartSecret,
+        }),
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        method: 'POST',
+      })
+
+      if (response.status === 404) {
+        if (!(await describesExistingCart(response))) {
+          resetCartState()
+          return 'missing'
+        }
+      } else if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`Cart operation "${operation}" failed (${response.status}): ${errorText}`)
+      }
+
+      try {
+        setCart(await getCart(targetCartID, { secret: cartSecret }))
+      } catch (error) {
+        if (debug) {
+          console.error(`Error refreshing cart after "${operation}":`, error)
+        }
+      }
+
+      return 'done'
+    },
+    [baseAPIURL, cartSecret, cartsSlug, debug, getCart, resetCartState],
+  )
+
   const addItem: EcommerceContextType['addItem'] = useCallback(
     async (item, quantity = 1) => {
       setIsLoading(true)
       try {
-        if (cartID) {
-          // Use server-side endpoint for adding items
-          const response = await fetch(`${baseAPIURL}/${cartsSlug}/${cartID}/add-item`, {
-            body: JSON.stringify({
-              item,
-              quantity,
-              secret: cartSecret,
-            }),
-            credentials: 'include',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            method: 'POST',
-          })
-
-          if (!response.ok) {
-            const errorText = await response.text()
-            throw new Error(`Failed to add item: ${errorText}`)
-          }
-
-          const result = await response.json()
-
-          if (!result.success) {
-            // Cart not found - reset state
-            setCartID(undefined)
-            setCart(undefined)
-            setCartSecret(undefined)
-            return
-          }
-
-          // Refresh cart with proper depth/populate settings for UI
-          const refreshedCart = await getCart(cartID, { secret: cartSecret })
-          setCart(refreshedCart)
-        } else {
-          // If no cartID exists, create a new cart with the item
-          const newCart = await createCart({ items: [{ ...item, quantity }] })
-
-          setCartID(newCart.id)
-          setCart(newCart)
+        if (cartID && (await postCartOperation(cartID, 'add-item', { item, quantity })) === 'done') {
+          return
         }
-      } catch (error) {
-        if (debug) {
-          console.error('Error adding item to cart:', error)
-        }
+
+        // No cart yet, or the one this session pointed at is gone: start a new one with the item.
+        const newCart = await createCart({ items: [{ ...item, quantity }] })
+
+        setCartID(newCart.id)
+        setCart(newCart)
       } finally {
         setIsLoading(false)
       }
     },
-    [baseAPIURL, cartID, cartSecret, cartsSlug, createCart, debug, getCart],
+    [cartID, createCart, postCartOperation],
   )
 
   const removeItem: EcommerceContextType['removeItem'] = useCallback(
@@ -392,45 +448,12 @@ export const EcommerceProvider: React.FC<ContextProps> = ({
 
       setIsLoading(true)
       try {
-        const response = await fetch(`${baseAPIURL}/${cartsSlug}/${cartID}/remove-item`, {
-          body: JSON.stringify({
-            itemID: targetID,
-            secret: cartSecret,
-          }),
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          method: 'POST',
-        })
-
-        if (!response.ok) {
-          const errorText = await response.text()
-          throw new Error(`Failed to remove item: ${errorText}`)
-        }
-
-        const result = await response.json()
-
-        if (!result.success) {
-          // Cart not found - reset state
-          setCartID(undefined)
-          setCart(undefined)
-          setCartSecret(undefined)
-          return
-        }
-
-        // Refresh cart with proper depth/populate settings for UI
-        const refreshedCart = await getCart(cartID, { secret: cartSecret })
-        setCart(refreshedCart)
-      } catch (error) {
-        if (debug) {
-          console.error('Error removing item from cart:', error)
-        }
+        await postCartOperation(cartID, 'remove-item', { itemID: targetID })
       } finally {
         setIsLoading(false)
       }
     },
-    [baseAPIURL, cartID, cartSecret, cartsSlug, debug, getCart],
+    [cartID, postCartOperation],
   )
 
   const incrementItem: EcommerceContextType['incrementItem'] = useCallback(
@@ -441,46 +464,12 @@ export const EcommerceProvider: React.FC<ContextProps> = ({
 
       setIsLoading(true)
       try {
-        const response = await fetch(`${baseAPIURL}/${cartsSlug}/${cartID}/update-item`, {
-          body: JSON.stringify({
-            itemID: targetID,
-            quantity: { $inc: 1 },
-            secret: cartSecret,
-          }),
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          method: 'POST',
-        })
-
-        if (!response.ok) {
-          const errorText = await response.text()
-          throw new Error(`Failed to increment item: ${errorText}`)
-        }
-
-        const result = await response.json()
-
-        if (!result.success) {
-          // Cart not found - reset state
-          setCartID(undefined)
-          setCart(undefined)
-          setCartSecret(undefined)
-          return
-        }
-
-        // Refresh cart with proper depth/populate settings for UI
-        const refreshedCart = await getCart(cartID, { secret: cartSecret })
-        setCart(refreshedCart)
-      } catch (error) {
-        if (debug) {
-          console.error('Error incrementing item quantity:', error)
-        }
+        await postCartOperation(cartID, 'update-item', { itemID: targetID, quantity: { $inc: 1 } })
       } finally {
         setIsLoading(false)
       }
     },
-    [baseAPIURL, cartID, cartSecret, cartsSlug, debug, getCart],
+    [cartID, postCartOperation],
   )
 
   const decrementItem: EcommerceContextType['decrementItem'] = useCallback(
@@ -491,46 +480,12 @@ export const EcommerceProvider: React.FC<ContextProps> = ({
 
       setIsLoading(true)
       try {
-        const response = await fetch(`${baseAPIURL}/${cartsSlug}/${cartID}/update-item`, {
-          body: JSON.stringify({
-            itemID: targetID,
-            quantity: { $inc: -1 },
-            secret: cartSecret,
-          }),
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          method: 'POST',
-        })
-
-        if (!response.ok) {
-          const errorText = await response.text()
-          throw new Error(`Failed to decrement item: ${errorText}`)
-        }
-
-        const result = await response.json()
-
-        if (!result.success) {
-          // Cart not found - reset state
-          setCartID(undefined)
-          setCart(undefined)
-          setCartSecret(undefined)
-          return
-        }
-
-        // Refresh cart with proper depth/populate settings for UI
-        const refreshedCart = await getCart(cartID, { secret: cartSecret })
-        setCart(refreshedCart)
-      } catch (error) {
-        if (debug) {
-          console.error('Error decrementing item quantity:', error)
-        }
+        await postCartOperation(cartID, 'update-item', { itemID: targetID, quantity: { $inc: -1 } })
       } finally {
         setIsLoading(false)
       }
     },
-    [baseAPIURL, cartID, cartSecret, cartsSlug, debug, getCart],
+    [cartID, postCartOperation],
   )
 
   const clearCart: EcommerceContextType['clearCart'] = useCallback(async () => {
@@ -540,43 +495,12 @@ export const EcommerceProvider: React.FC<ContextProps> = ({
 
     setIsLoading(true)
     try {
-      const response = await fetch(`${baseAPIURL}/${cartsSlug}/${cartID}/clear`, {
-        body: JSON.stringify({
-          secret: cartSecret,
-        }),
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        method: 'POST',
-      })
-
-      if (!response.ok) {
-        const errorText = await response.text()
-        throw new Error(`Failed to clear cart: ${errorText}`)
-      }
-
-      const result = await response.json()
-
-      if (!result.success) {
-        // Cart not found - reset state
-        setCartID(undefined)
-        setCart(undefined)
-        setCartSecret(undefined)
-        return
-      }
-
-      // Refresh cart with proper depth/populate settings for UI
-      const refreshedCart = await getCart(cartID, { secret: cartSecret })
-      setCart(refreshedCart)
-    } catch (error) {
-      if (debug) {
-        console.error('Error clearing cart:', error)
-      }
+      // A cart that no longer exists has nothing left to clear: 'missing' resolves too.
+      await postCartOperation(cartID, 'clear', {})
     } finally {
       setIsLoading(false)
     }
-  }, [baseAPIURL, cartID, cartSecret, cartsSlug, debug, getCart])
+  }, [cartID, postCartOperation])
 
   const setCurrency: EcommerceContextType['setCurrency'] = useCallback(
     (currency) => {
