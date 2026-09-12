@@ -60,7 +60,7 @@ const isTransactionBuyer = ({
  */
 export const confirmOrder: (props: Props) => NonNullable<PaymentAdapter>['confirmOrder'] =
 	(props) =>
-	async ({ data, ordersSlug = 'orders', req, transactionsSlug = 'transactions' }) => {
+	async ({ data, ordersSlug = 'orders', productsSlug = 'products', req, transactionsSlug = 'transactions', variantsSlug = 'variants' }) => {
 		const payload = req.payload
 		const { apiVersion, appInfo, secretKey } = props || {}
 
@@ -120,10 +120,12 @@ export const confirmOrder: (props: Props) => NonNullable<PaymentAdapter>['confir
 			},
 			ordersSlug,
 			paymentIntentID,
+			productsSlug,
 			req,
 			stripe,
 			transactionID: transaction.id,
 			transactionsSlug,
+			variantsSlug,
 		})
 
 		switch (result.status) {

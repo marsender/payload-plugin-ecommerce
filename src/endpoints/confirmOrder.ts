@@ -149,8 +149,10 @@ export const confirmOrderHandler: ConfirmOrderHandler =
 					customerEmail,
 				},
 				ordersSlug,
+				productsSlug,
 				req,
 				transactionsSlug,
+				variantsSlug,
 			})
 
 			if (paymentResponse.transactionID) {

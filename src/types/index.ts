@@ -140,12 +140,21 @@ type ConfirmOrder = (args: {
    * The slug of the orders collection, defaults to 'orders'.
    */
   ordersSlug?: string
+  /**
+   * The slug of the products collection, defaults to 'products'. An adapter that adjusts stock itself
+   * (the Stripe adapter does, atomically with the order) needs it.
+   */
+  productsSlug?: string
   req: PayloadRequest
   /**
    * The slug of the transactions collection, defaults to 'transactions'.
    * For example, this is used to create a record of the payment intent in the transactions collection.
    */
   transactionsSlug?: string
+  /**
+   * The slug of the variants collection, defaults to 'variants'.
+   */
+  variantsSlug?: string
 }) => ConfirmOrderReturnType | Promise<ConfirmOrderReturnType>
 
 /**

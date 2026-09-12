@@ -32,7 +32,7 @@ const normalizeEmail = (value)=>typeof value === 'string' && value.trim() ? valu
  * It never returns a `transactionID`: the confirm-order endpoint adjusts inventory whenever one is
  * returned, and `settlePaymentIntent` already did so, atomically with the order. A repeat call
  * returns no `accessToken` either.
- */ export const confirmOrder = (props)=>async ({ data, ordersSlug = 'orders', req, transactionsSlug = 'transactions' })=>{
+ */ export const confirmOrder = (props)=>async ({ data, ordersSlug = 'orders', productsSlug = 'products', req, transactionsSlug = 'transactions', variantsSlug = 'variants' })=>{
         const payload = req.payload;
         const { apiVersion, appInfo, secretKey } = props || {};
         const customerEmail = data.customerEmail;
@@ -88,10 +88,12 @@ const normalizeEmail = (value)=>typeof value === 'string' && value.trim() ? valu
             },
             ordersSlug,
             paymentIntentID,
+            productsSlug,
             req,
             stripe,
             transactionID: transaction.id,
-            transactionsSlug
+            transactionsSlug,
+            variantsSlug
         });
         switch(result.status){
             case 'created':

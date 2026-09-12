@@ -9,6 +9,17 @@ PayloadCMS compatibility.
 
 ---
 
+## [3.89.5] — 2026-09-12
+
+### Fixed
+
+- **Stripe settlement honours custom products and variants collection slugs.** Since 3.89.4
+  `settlePaymentIntent` adjusts stock itself, but `confirmOrder` called it with the default
+  `products` / `variants` slugs, so an app with renamed collections failed the stock update and
+  rolled back the order. The confirm-order endpoint now passes its configured `productsSlug` and
+  `variantsSlug` to the adapter (both new optional `ConfirmOrder` arguments), and the Stripe
+  adapter forwards them.
+
 ## [3.89.4] — 2026-09-12
 
 ### Added

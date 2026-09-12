@@ -87,8 +87,10 @@ import { decrementInventoryForTransaction } from '../utilities/decrementInventor
                     customerEmail
                 },
                 ordersSlug,
+                productsSlug,
                 req,
-                transactionsSlug
+                transactionsSlug,
+                variantsSlug
             });
             if (paymentResponse.transactionID) {
                 await decrementInventoryForTransaction({
