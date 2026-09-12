@@ -1,7 +1,11 @@
+import type { DefaultDocumentIDType } from 'payload'
+
 import Stripe from 'stripe'
 
 import type { PaymentAdapter } from '../../../types/index.js'
 import type { StripeAdapterArgs } from './index.js'
+
+import { withCartLock } from '../../../utilities/withCartLock.js'
 
 type Props = {
 	apiVersion?: Stripe.StripeConfig['apiVersion']
@@ -9,6 +13,35 @@ type Props = {
 	secretKey: StripeAdapterArgs['secretKey']
 }
 
+const idOf = (value: unknown): DefaultDocumentIDType | undefined => {
+	if (typeof value === 'string' || typeof value === 'number') {
+		return value
+	}
+	if (value && typeof value === 'object' && 'id' in value) {
+		return idOf((value as { id?: unknown }).id)
+	}
+	return undefined
+}
+
+/**
+ * Turns a succeeded PaymentIntent into an order. **Safe to call more than once for the same
+ * PaymentIntent**: every call after the first returns the order the first one created.
+ *
+ * That is not hypothetical. A storefront confirms from the page that took the payment AND from the
+ * `return_url` a redirect-based method sends the buyer back to, and on a phone the payment can
+ * finish in both at once (the original tab plus the one Stripe returned to). Production saw the two
+ * requests 0.4 s apart. Without a guard both find the pending transaction, both create an order,
+ * and the buyer is granted everything twice for one charge.
+ *
+ * So the check and the writes run under `withCartLock`, keyed on the transaction's cart — the same
+ * lock `initiatePayment` takes, so a confirmation also waits for an initiation still in flight on
+ * that cart. The second caller gets the lock only once the first has committed, and then sees the
+ * order it created.
+ *
+ * A repeat call returns no `transactionID`: the confirm-order endpoint adjusts inventory whenever
+ * one is returned, and the first call already did. It returns no `accessToken` either — anyone who
+ * has seen the return URL knows the PaymentIntent id, and a replay must not hand them the order.
+ */
 export const confirmOrder: (props: Props) => NonNullable<PaymentAdapter>['confirmOrder'] =
 	(props) =>
 	async ({ data, ordersSlug = 'orders', req, transactionsSlug = 'transactions' }) => {
@@ -61,95 +94,121 @@ export const confirmOrder: (props: Props) => NonNullable<PaymentAdapter>['confir
 			},
 		})
 
-		const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentID)
+		// A transaction is always created with its cart; the PaymentIntent id only stands in so a
+		// row without one is still serialised against itself.
+		const lockKey = idOf(transaction.cart) ?? paymentIntentID
 
-		if (paymentIntent.status !== 'succeeded') {
-			throw new Error(`Payment not completed.`)
-		}
+		// Every database call below passes `req` so it runs inside the lock's transaction.
+		return await withCartLock(req, lockKey, async () => {
+			const current = await payload.findByID({
+				id: transaction.id,
+				collection: transactionsSlug,
+				depth: 0,
+				overrideAccess: true,
+				req,
+				select: {
+					order: true,
+				},
+			})
 
-		const cartID = paymentIntent.metadata.cartID
-		const cartItemsSnapshot = paymentIntent.metadata.cartItemsSnapshot ? JSON.parse(paymentIntent.metadata.cartItemsSnapshot) : undefined
-
-		const shippingAddressRaw = paymentIntent.metadata.shippingAddress ? JSON.parse(paymentIntent.metadata.shippingAddress) : undefined
-		// Sanitize address: convert empty string title to null so Payload's select field validation passes
-		const shippingAddress = shippingAddressRaw
-			? {
-					...shippingAddressRaw,
-					...(shippingAddressRaw.title === '' ? { title: null } : {}),
+			const existingOrderID = idOf((current as { order?: unknown } | null)?.order)
+			if (existingOrderID !== undefined) {
+				return {
+					message: 'Order already confirmed',
+					orderID: existingOrderID,
 				}
-			: undefined
+			}
 
-		if (!cartID) {
-			throw new Error('Cart ID not found in the PaymentIntent metadata')
-		}
+			const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentID)
 
-		if (!cartItemsSnapshot || !Array.isArray(cartItemsSnapshot)) {
-			throw new Error('Cart items snapshot not found or invalid in the PaymentIntent metadata')
-		}
+			if (paymentIntent.status !== 'succeeded') {
+				throw new Error(`Payment not completed.`)
+			}
 
-		// Fetch the cart to get the tenant (needed for multi-tenant support)
-		const cart = await payload.findByID({
-			collection: 'carts',
-			id: cartID,
-			req,
-			select: {
-				id: true,
-				tenant: true,
-			},
+			const cartID = paymentIntent.metadata.cartID
+			const cartItemsSnapshot = paymentIntent.metadata.cartItemsSnapshot ? JSON.parse(paymentIntent.metadata.cartItemsSnapshot) : undefined
+
+			const shippingAddressRaw = paymentIntent.metadata.shippingAddress ? JSON.parse(paymentIntent.metadata.shippingAddress) : undefined
+			// Sanitize address: convert empty string title to null so Payload's select field validation passes
+			const shippingAddress = shippingAddressRaw
+				? {
+						...shippingAddressRaw,
+						...(shippingAddressRaw.title === '' ? { title: null } : {}),
+					}
+				: undefined
+
+			if (!cartID) {
+				throw new Error('Cart ID not found in the PaymentIntent metadata')
+			}
+
+			if (!cartItemsSnapshot || !Array.isArray(cartItemsSnapshot)) {
+				throw new Error('Cart items snapshot not found or invalid in the PaymentIntent metadata')
+			}
+
+			// Fetch the cart to get the tenant (needed for multi-tenant support)
+			const cart = await payload.findByID({
+				collection: 'carts',
+				id: cartID,
+				req,
+				select: {
+					id: true,
+					tenant: true,
+				},
+			})
+
+			if (!cart) {
+				throw new Error(`Cart with ID ${cartID} not found`)
+			}
+
+			// Extract tenant from cart for multi-tenant support
+			// @ts-expect-error - tenant field may be added by multi-tenant plugin
+			const cartTenant = typeof cart.tenant === 'object' ? cart.tenant?.id : cart.tenant
+
+			if (!cartTenant) {
+				throw new Error(`Cart ${cartID} has no tenant assigned`)
+			}
+
+			const order = await payload.create({
+				collection: ordersSlug,
+				data: {
+					amount: paymentIntent.amount,
+					currency: paymentIntent.currency.toUpperCase(),
+					...(req.user ? { customer: req.user.id } : { customerEmail }),
+					items: cartItemsSnapshot,
+					shippingAddress,
+					status: 'processing',
+					transactions: [transaction.id],
+					tenant: cartTenant,
+				},
+				req,
+			})
+
+			const timestamp = new Date().toISOString()
+
+			await payload.update({
+				id: cartID,
+				collection: 'carts',
+				data: {
+					purchasedAt: timestamp,
+				},
+				req,
+			})
+
+			await payload.update({
+				id: transaction.id,
+				collection: transactionsSlug,
+				data: {
+					order: order.id,
+					status: 'succeeded',
+				},
+				req,
+			})
+
+			return {
+				message: 'Payment initiated successfully',
+				orderID: order.id,
+				transactionID: transaction.id,
+				...(order.accessToken ? { accessToken: order.accessToken } : {}),
+			}
 		})
-
-		if (!cart) {
-			throw new Error(`Cart with ID ${cartID} not found`)
-		}
-
-		// Extract tenant from cart for multi-tenant support
-		// @ts-expect-error - tenant field may be added by multi-tenant plugin
-		const cartTenant = typeof cart.tenant === 'object' ? cart.tenant?.id : cart.tenant
-
-		if (!cartTenant) {
-			throw new Error(`Cart ${cartID} has no tenant assigned`)
-		}
-
-		const order = await payload.create({
-			collection: ordersSlug,
-			data: {
-				amount: paymentIntent.amount,
-				currency: paymentIntent.currency.toUpperCase(),
-				...(req.user ? { customer: req.user.id } : { customerEmail }),
-				items: cartItemsSnapshot,
-				shippingAddress,
-				status: 'processing',
-				transactions: [transaction.id],
-				tenant: cartTenant,
-			},
-			req,
-		})
-
-		const timestamp = new Date().toISOString()
-
-		await payload.update({
-			id: cartID,
-			collection: 'carts',
-			data: {
-				purchasedAt: timestamp,
-			},
-			req,
-		})
-
-		await payload.update({
-			id: transaction.id,
-			collection: transactionsSlug,
-			data: {
-				order: order.id,
-				status: 'succeeded',
-			},
-			req,
-		})
-
-		return {
-			message: 'Payment initiated successfully',
-			orderID: order.id,
-			transactionID: transaction.id,
-			...(order.accessToken ? { accessToken: order.accessToken } : {}),
-		}
 	}

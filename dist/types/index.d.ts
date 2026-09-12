@@ -80,7 +80,11 @@ type ConfirmOrderReturnType = {
     [key: string]: any;
     message: string;
     orderID: DefaultDocumentIDType;
-    transactionID: DefaultDocumentIDType;
+    /**
+     * The transaction this call settled. Omit it when the order already existed (a repeat
+     * confirmation): the confirm-order endpoint adjusts inventory whenever it is present.
+     */
+    transactionID?: DefaultDocumentIDType;
 };
 type ConfirmOrder = (args: {
     /**

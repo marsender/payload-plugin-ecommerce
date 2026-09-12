@@ -9,6 +9,19 @@ PayloadCMS compatibility.
 
 ---
 
+## [3.89.2] — 2026-09-12
+
+### Fixed
+
+- **Stripe `confirmOrder` creates one order per PaymentIntent, however often it is called.** A
+  storefront confirms both from the page that took the payment and from the `return_url` of a
+  redirect-based method, and on a phone both can run at once (seen in production 0.4 s apart).
+  Each found the pending transaction and created its own order, so one charge granted everything
+  twice. The check and the writes now run under `withCartLock`, the lock `initiatePayment` already
+  takes on the cart; a later call returns the existing order. It returns no `transactionID`, so
+  the confirm-order endpoint does not adjust inventory a second time, and no `accessToken`.
+  `ConfirmOrderReturnType.transactionID` is optional accordingly. Deviation from upstream.
+
 ## [3.89.1] — 2026-09-11
 
 ### Fixed
