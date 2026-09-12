@@ -9,6 +9,20 @@ PayloadCMS compatibility.
 
 ---
 
+## [3.89.3] — 2026-09-12
+
+### Security
+
+- **Stripe `confirmOrder` only lets the buyer confirm.** It assigned the order to whoever called,
+  and the PaymentIntent id it takes travels in the `return_url` query string. Since 3.89.2 the
+  first confirmation wins, so a stranger confirming a leaked id first would have owned the order
+  and its credits, and the buyer's own confirmation would have been handed that stranger's order.
+  A transaction recorded with a `customer` can now only be confirmed by that user (an email in the
+  request does not stand in for the account); a guest transaction only with the email it was
+  initiated with, compared case-insensitively. A transaction with neither is refused. The check
+  runs under the lock, before an existing order is returned. The PaymentIntent's cart must also
+  be the transaction's cart. Deviation from upstream.
+
 ## [3.89.2] — 2026-09-12
 
 ### Fixed

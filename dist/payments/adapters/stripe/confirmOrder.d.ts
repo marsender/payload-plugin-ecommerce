@@ -22,8 +22,14 @@ type Props = {
  * order it created.
  *
  * A repeat call returns no `transactionID`: the confirm-order endpoint adjusts inventory whenever
- * one is returned, and the first call already did. It returns no `accessToken` either — anyone who
- * has seen the return URL knows the PaymentIntent id, and a replay must not hand them the order.
+ * one is returned, and the first call already did. It returns no `accessToken` either.
+ *
+ * **Only the buyer may confirm** (`isTransactionBuyer`), checked under the lock before anything is
+ * returned or written. First-confirmation-wins makes this load-bearing: without it, whoever
+ * confirmed a leaked PaymentIntent id first would own the order and its credits, and the buyer's
+ * own confirmation would then only be handed that stranger's order. The order is built from the
+ * PaymentIntent's own cart, which must be the transaction's; a cart id sent in the request plays no
+ * part in it.
  */
 export declare const confirmOrder: (props: Props) => NonNullable<PaymentAdapter>['confirmOrder'];
 export {};

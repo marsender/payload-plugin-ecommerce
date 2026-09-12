@@ -9,6 +9,25 @@ const idOf = (value)=>{
     }
     return undefined;
 };
+const normalizeEmail = (value)=>typeof value === 'string' && value.trim() ? value.trim().toLowerCase() : undefined;
+/**
+ * Whether the caller is the buyer `initiatePayment` recorded on the transaction. The PaymentIntent
+ * id is no proof of that: it travels in the `return_url` query string, so it ends up in browser
+ * history, screenshots and shared links.
+ *
+ * - A signed-in buyer's transaction carries `customer`, and only that user may confirm it. An email
+ *   sent in the request is not accepted in its place: it is whatever the caller typed.
+ * - A guest's transaction carries `customerEmail`, and the confirmation must carry the same address,
+ *   from the caller's account or, for a guest, from the request (the endpoint requires one).
+ * - A transaction with neither is refused: there is no one to check the caller against.
+ */ const isTransactionBuyer = ({ callerEmail, callerID, transaction })=>{
+    const buyerID = idOf(transaction.customer);
+    if (buyerID !== undefined) {
+        return callerID !== undefined && String(callerID) === String(buyerID);
+    }
+    const buyerEmail = normalizeEmail(transaction.customerEmail);
+    return buyerEmail !== undefined && normalizeEmail(callerEmail) === buyerEmail;
+};
 /**
  * Turns a succeeded PaymentIntent into an order. **Safe to call more than once for the same
  * PaymentIntent**: every call after the first returns the order the first one created.
@@ -25,8 +44,14 @@ const idOf = (value)=>{
  * order it created.
  *
  * A repeat call returns no `transactionID`: the confirm-order endpoint adjusts inventory whenever
- * one is returned, and the first call already did. It returns no `accessToken` either — anyone who
- * has seen the return URL knows the PaymentIntent id, and a replay must not hand them the order.
+ * one is returned, and the first call already did. It returns no `accessToken` either.
+ *
+ * **Only the buyer may confirm** (`isTransactionBuyer`), checked under the lock before anything is
+ * returned or written. First-confirmation-wins makes this load-bearing: without it, whoever
+ * confirmed a leaked PaymentIntent id first would own the order and its credits, and the buyer's
+ * own confirmation would then only be handed that stranger's order. The order is built from the
+ * PaymentIntent's own cart, which must be the transaction's; a cart id sent in the request plays no
+ * part in it.
  */ export const confirmOrder = (props)=>async ({ data, ordersSlug = 'orders', req, transactionsSlug = 'transactions' })=>{
         const payload = req.payload;
         const { apiVersion, appInfo, secretKey } = props || {};
@@ -82,10 +107,24 @@ const idOf = (value)=>{
                 overrideAccess: true,
                 req,
                 select: {
+                    cart: true,
+                    customer: true,
+                    customerEmail: true,
                     order: true
                 }
             });
-            const existingOrderID = idOf(current?.order);
+            if (!current) {
+                throw new Error('No transaction found for the provided PaymentIntent ID');
+            }
+            const buyerCheck = {
+                callerEmail: req.user ? req.user.email : customerEmail,
+                callerID: req.user?.id,
+                transaction: current
+            };
+            if (!isTransactionBuyer(buyerCheck)) {
+                throw new Error(`Refusing to confirm PaymentIntent ${paymentIntentID}: the caller is not the buyer of transaction ${String(transaction.id)}.`);
+            }
+            const existingOrderID = idOf(current.order);
             if (existingOrderID !== undefined) {
                 return {
                     message: 'Order already confirmed',
@@ -108,6 +147,10 @@ const idOf = (value)=>{
             } : undefined;
             if (!cartID) {
                 throw new Error('Cart ID not found in the PaymentIntent metadata');
+            }
+            const transactionCartID = idOf(current.cart);
+            if (transactionCartID === undefined || String(transactionCartID) !== String(cartID)) {
+                throw new Error(`PaymentIntent ${paymentIntentID} was created for cart ${cartID}, not for the cart of transaction ${String(transaction.id)}.`);
             }
             if (!cartItemsSnapshot || !Array.isArray(cartItemsSnapshot)) {
                 throw new Error('Cart items snapshot not found or invalid in the PaymentIntent metadata');
