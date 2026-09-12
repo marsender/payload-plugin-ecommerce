@@ -9,6 +9,28 @@ PayloadCMS compatibility.
 
 ---
 
+## [3.89.4] — 2026-09-12
+
+### Added
+
+- **`settlePaymentIntent`** (`@marsender/payload-plugin-ecommerce/payments/stripe`): turns a
+  succeeded PaymentIntent into an order exactly once, under `withCartLock`. The Stripe adapter's
+  `confirmOrder` now delegates to it, and a server-side caller (a job recovering a payment no
+  browser confirmed) can use it too; the two can run at the same moment for the same payment and
+  produce one order. The caller decides who may settle through an `authorize` callback, and a
+  `succeededBefore` date leaves a just-charged payment to the browser. Intended callers besides
+  `confirmOrder`: a `payment_intent.succeeded` webhook handler and a recovery job.
+
+### Changed
+
+- The order's buyer comes from the transaction (`customer`, else `customerEmail`) rather than from
+  the confirming request. Since 3.89.3 only that buyer may confirm, so browser confirmations create
+  the same orders as before.
+- A Stripe settlement takes the items out of stock in the same database transaction as it creates
+  the order, instead of the confirm-order endpoint doing it afterwards. The Stripe `confirmOrder`
+  therefore returns no `transactionID`, and the endpoint's own adjustment only applies to other
+  adapters.
+
 ## [3.89.3] — 2026-09-12
 
 ### Security

@@ -2,6 +2,8 @@ import { addDataAndFileToRequest, type DefaultDocumentIDType, type Endpoint } fr
 
 import type { CurrenciesConfig, PaymentAdapter, ProductsValidation } from '../types/index.js'
 
+import { decrementInventoryForTransaction } from '../utilities/decrementInventoryForTransaction.js'
+
 type Args = {
 	/**
 	 * The slug of the carts collection, defaults to 'carts'.
@@ -152,48 +154,13 @@ export const confirmOrderHandler: ConfirmOrderHandler =
 			})
 
 			if (paymentResponse.transactionID) {
-				const transaction = await payload.findByID({
-					id: paymentResponse.transactionID,
-					collection: transactionsSlug,
-					depth: 0,
+				await decrementInventoryForTransaction({
+					productsSlug,
 					req,
-					select: {
-						id: true,
-						items: true,
-					},
+					transactionID: paymentResponse.transactionID,
+					transactionsSlug,
+					variantsSlug,
 				})
-
-				if (transaction && Array.isArray(transaction.items) && transaction.items.length > 0) {
-					for (const item of transaction.items) {
-						if (item.variant) {
-							const id = typeof item.variant === 'object' ? item.variant.id : item.variant
-
-							await payload.db.updateOne({
-								id,
-								collection: variantsSlug,
-								data: {
-									inventory: {
-										$inc: item.quantity * -1,
-									},
-								},
-								req,
-							})
-						} else if (item.product) {
-							const id = typeof item.product === 'object' ? item.product.id : item.product
-
-							await payload.db.updateOne({
-								id,
-								collection: productsSlug,
-								data: {
-									inventory: {
-										$inc: item.quantity * -1,
-									},
-								},
-								req,
-							})
-						}
-					}
-				}
 			}
 
 			if ('paymentResponse.transactionID' in paymentResponse && paymentResponse.transactionID) {

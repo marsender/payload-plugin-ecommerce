@@ -5,22 +5,12 @@ import Stripe from 'stripe'
 import type { PaymentAdapter } from '../../../types/index.js'
 import type { StripeAdapterArgs } from './index.js'
 
-import { withCartLock } from '../../../utilities/withCartLock.js'
+import { idOf, type SettleableTransaction, settlePaymentIntent } from './settlePaymentIntent.js'
 
 type Props = {
 	apiVersion?: Stripe.StripeConfig['apiVersion']
 	appInfo?: Stripe.StripeConfig['appInfo']
 	secretKey: StripeAdapterArgs['secretKey']
-}
-
-const idOf = (value: unknown): DefaultDocumentIDType | undefined => {
-	if (typeof value === 'string' || typeof value === 'number') {
-		return value
-	}
-	if (value && typeof value === 'object' && 'id' in value) {
-		return idOf((value as { id?: unknown }).id)
-	}
-	return undefined
 }
 
 const normalizeEmail = (value: unknown): string | undefined =>
@@ -44,7 +34,7 @@ const isTransactionBuyer = ({
 }: {
 	callerEmail: unknown
 	callerID: DefaultDocumentIDType | undefined
-	transaction: { customer?: unknown; customerEmail?: unknown }
+	transaction: SettleableTransaction
 }): boolean => {
 	const buyerID = idOf(transaction.customer)
 	if (buyerID !== undefined) {
@@ -55,29 +45,18 @@ const isTransactionBuyer = ({
 }
 
 /**
- * Turns a succeeded PaymentIntent into an order. **Safe to call more than once for the same
- * PaymentIntent**: every call after the first returns the order the first one created.
- *
- * That is not hypothetical. A storefront confirms from the page that took the payment AND from the
- * `return_url` a redirect-based method sends the buyer back to, and on a phone the payment can
- * finish in both at once (the original tab plus the one Stripe returned to). Production saw the two
- * requests 0.4 s apart. Without a guard both find the pending transaction, both create an order,
- * and the buyer is granted everything twice for one charge.
- *
- * So the check and the writes run under `withCartLock`, keyed on the transaction's cart — the same
- * lock `initiatePayment` takes, so a confirmation also waits for an initiation still in flight on
- * that cart. The second caller gets the lock only once the first has committed, and then sees the
- * order it created.
- *
- * A repeat call returns no `transactionID`: the confirm-order endpoint adjusts inventory whenever
- * one is returned, and the first call already did. It returns no `accessToken` either.
+ * The browser's confirmation of a Stripe payment: settles it through `settlePaymentIntent`, which
+ * makes it safe to call more than once and at the same time as any other settlement of the same
+ * payment — every call after the first returns the order the first one created.
  *
  * **Only the buyer may confirm** (`isTransactionBuyer`), checked under the lock before anything is
  * returned or written. First-confirmation-wins makes this load-bearing: without it, whoever
  * confirmed a leaked PaymentIntent id first would own the order and its credits, and the buyer's
- * own confirmation would then only be handed that stranger's order. The order is built from the
- * PaymentIntent's own cart, which must be the transaction's; a cart id sent in the request plays no
- * part in it.
+ * own confirmation would then only be handed that stranger's order.
+ *
+ * It never returns a `transactionID`: the confirm-order endpoint adjusts inventory whenever one is
+ * returned, and `settlePaymentIntent` already did so, atomically with the order. A repeat call
+ * returns no `accessToken` either.
  */
 export const confirmOrder: (props: Props) => NonNullable<PaymentAdapter>['confirmOrder'] =
 	(props) =>
@@ -131,142 +110,36 @@ export const confirmOrder: (props: Props) => NonNullable<PaymentAdapter>['confir
 			},
 		})
 
-		// A transaction is always created with its cart; the PaymentIntent id only stands in so a
-		// row without one is still serialised against itself.
-		const lockKey = idOf(transaction.cart) ?? paymentIntentID
+		const callerEmail = req.user ? (req.user as { email?: unknown }).email : customerEmail
 
-		// Every database call below passes `req` so it runs inside the lock's transaction.
-		return await withCartLock(req, lockKey, async () => {
-			const current = await payload.findByID({
-				id: transaction.id,
-				collection: transactionsSlug,
-				depth: 0,
-				overrideAccess: true,
-				req,
-				select: {
-					cart: true,
-					customer: true,
-					customerEmail: true,
-					order: true,
-				},
-			})
+		const result = await settlePaymentIntent({
+			authorize: (current) => {
+				if (!isTransactionBuyer({ callerEmail, callerID: req.user?.id, transaction: current })) {
+					throw new Error(`Refusing to confirm PaymentIntent ${paymentIntentID}: the caller is not the buyer of transaction ${String(transaction.id)}.`)
+				}
+			},
+			ordersSlug,
+			paymentIntentID,
+			req,
+			stripe,
+			transactionID: transaction.id,
+			transactionsSlug,
+		})
 
-			if (!current) {
-				throw new Error('No transaction found for the provided PaymentIntent ID')
-			}
-
-			const buyerCheck = {
-				callerEmail: req.user ? (req.user as { email?: unknown }).email : customerEmail,
-				callerID: req.user?.id,
-				transaction: current as { customer?: unknown; customerEmail?: unknown },
-			}
-			if (!isTransactionBuyer(buyerCheck)) {
-				throw new Error(`Refusing to confirm PaymentIntent ${paymentIntentID}: the caller is not the buyer of transaction ${String(transaction.id)}.`)
-			}
-
-			const existingOrderID = idOf((current as { order?: unknown }).order)
-			if (existingOrderID !== undefined) {
+		switch (result.status) {
+			case 'created':
+				return {
+					message: 'Payment initiated successfully',
+					orderID: result.orderID,
+					...(result.accessToken ? { accessToken: result.accessToken } : {}),
+				}
+			case 'existing':
 				return {
 					message: 'Order already confirmed',
-					orderID: existingOrderID,
+					orderID: result.orderID,
 				}
-			}
-
-			const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentID)
-
-			if (paymentIntent.status !== 'succeeded') {
+			default:
+				// `too-recent` cannot happen without `succeededBefore`; both mean no money to confirm.
 				throw new Error(`Payment not completed.`)
-			}
-
-			const cartID = paymentIntent.metadata.cartID
-			const cartItemsSnapshot = paymentIntent.metadata.cartItemsSnapshot ? JSON.parse(paymentIntent.metadata.cartItemsSnapshot) : undefined
-
-			const shippingAddressRaw = paymentIntent.metadata.shippingAddress ? JSON.parse(paymentIntent.metadata.shippingAddress) : undefined
-			// Sanitize address: convert empty string title to null so Payload's select field validation passes
-			const shippingAddress = shippingAddressRaw
-				? {
-						...shippingAddressRaw,
-						...(shippingAddressRaw.title === '' ? { title: null } : {}),
-					}
-				: undefined
-
-			if (!cartID) {
-				throw new Error('Cart ID not found in the PaymentIntent metadata')
-			}
-
-			const transactionCartID = idOf((current as { cart?: unknown }).cart)
-			if (transactionCartID === undefined || String(transactionCartID) !== String(cartID)) {
-				throw new Error(`PaymentIntent ${paymentIntentID} was created for cart ${cartID}, not for the cart of transaction ${String(transaction.id)}.`)
-			}
-
-			if (!cartItemsSnapshot || !Array.isArray(cartItemsSnapshot)) {
-				throw new Error('Cart items snapshot not found or invalid in the PaymentIntent metadata')
-			}
-
-			// Fetch the cart to get the tenant (needed for multi-tenant support)
-			const cart = await payload.findByID({
-				collection: 'carts',
-				id: cartID,
-				req,
-				select: {
-					id: true,
-					tenant: true,
-				},
-			})
-
-			if (!cart) {
-				throw new Error(`Cart with ID ${cartID} not found`)
-			}
-
-			// Extract tenant from cart for multi-tenant support
-			// @ts-expect-error - tenant field may be added by multi-tenant plugin
-			const cartTenant = typeof cart.tenant === 'object' ? cart.tenant?.id : cart.tenant
-
-			if (!cartTenant) {
-				throw new Error(`Cart ${cartID} has no tenant assigned`)
-			}
-
-			const order = await payload.create({
-				collection: ordersSlug,
-				data: {
-					amount: paymentIntent.amount,
-					currency: paymentIntent.currency.toUpperCase(),
-					...(req.user ? { customer: req.user.id } : { customerEmail }),
-					items: cartItemsSnapshot,
-					shippingAddress,
-					status: 'processing',
-					transactions: [transaction.id],
-					tenant: cartTenant,
-				},
-				req,
-			})
-
-			const timestamp = new Date().toISOString()
-
-			await payload.update({
-				id: cartID,
-				collection: 'carts',
-				data: {
-					purchasedAt: timestamp,
-				},
-				req,
-			})
-
-			await payload.update({
-				id: transaction.id,
-				collection: transactionsSlug,
-				data: {
-					order: order.id,
-					status: 'succeeded',
-				},
-				req,
-			})
-
-			return {
-				message: 'Payment initiated successfully',
-				orderID: order.id,
-				transactionID: transaction.id,
-				...(order.accessToken ? { accessToken: order.accessToken } : {}),
-			}
-		})
+		}
 	}
