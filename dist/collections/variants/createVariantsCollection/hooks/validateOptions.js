@@ -3,12 +3,12 @@ export const validateOptions = (props)=>async (values, { data, req })=>{
         const { t } = req;
         if (!values || values.length === 0) {
             // @ts-expect-error - TODO: Fix types
-            return t('ecommerce:variantOptionsRequired');
+            return t('plugin-ecommerce:variantOptionsRequired');
         }
         const productID = data.product;
         if (!productID) {
             // @ts-expect-error - TODO: Fix types
-            return t('ecommerce:productRequired');
+            return t('plugin-ecommerce:productRequired');
         }
         const product = await req.payload.findByID({
             id: productID,
@@ -40,7 +40,7 @@ export const validateOptions = (props)=>async (values, { data, req })=>{
         // @ts-expect-error - TODO: Fix types
         if (values.length < product?.variantTypes?.length) {
             // @ts-expect-error - TODO: Fix types
-            return t('ecommerce:variantOptionsRequiredAll');
+            return t('plugin-ecommerce:variantOptionsRequiredAll');
         }
         if (variants.length > 0) {
             const existingOptions = [];
@@ -50,7 +50,7 @@ export const validateOptions = (props)=>async (values, { data, req })=>{
             const exists = existingOptions.some((combo)=>combo.length === values.length && combo.every((val)=>values.includes(val)));
             if (exists) {
                 // @ts-expect-error - TODO: Fix types
-                return t('ecommerce:variantOptionsAlreadyExists');
+                return t('plugin-ecommerce:variantOptionsAlreadyExists');
             }
         }
         return true;
