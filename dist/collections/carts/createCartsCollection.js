@@ -13,6 +13,7 @@ import { hasCartSecretAccess } from './hasCartSecretAccess.js';
 import { populateTenant } from '../../utilities/populateTenant.js';
 import { statusBeforeRead } from './statusBeforeRead.js';
 import { tenantBaseListFilter } from '../../utilities/tenantBaseListFilter.js';
+import { customerTenantFilterOptions, withFilterOptions } from '../../utilities/tenantFilterOptions.js';
 export const createCartsCollection = (props)=>{
     const { access, allowGuestCarts = false, cartItemMatcher, currenciesConfig, customersSlug = 'users', enableVariants = false, multiTenant, productsSlug = 'products', variantsSlug = 'variants' } = props || {};
     const tenantsSlug = multiTenant?.tenantsSlug || 'tenants';
@@ -38,6 +39,7 @@ export const createCartsCollection = (props)=>{
         ] : [],
         cartItemsField({
             enableVariants,
+            multiTenant,
             overrides: {
                 label: ({ t })=>// @ts-expect-error - translations are not typed in plugins yet
                     t('plugin-ecommerce:items'),
@@ -74,6 +76,7 @@ export const createCartsCollection = (props)=>{
             admin: {
                 position: 'sidebar'
             },
+            ...withFilterOptions(customerTenantFilterOptions(multiTenant)),
             label: ({ t })=>// @ts-expect-error - translations are not typed in plugins yet
                 t('plugin-ecommerce:customer'),
             relationTo: customersSlug

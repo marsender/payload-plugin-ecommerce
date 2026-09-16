@@ -4,6 +4,7 @@ import { currencyField } from '../../fields/currencyField.js';
 import { statusField } from '../../fields/statusField.js';
 import { populateTenant } from '../../utilities/populateTenant.js';
 import { tenantBaseListFilter } from '../../utilities/tenantBaseListFilter.js';
+import { customerTenantFilterOptions, tenantScopedFilterOptions, withFilterOptions } from '../../utilities/tenantFilterOptions.js';
 export const createTransactionsCollection = (props)=>{
     const { access, addressFields, cartsSlug = 'carts', currenciesConfig, customersSlug = 'users', enableVariants = false, multiTenant, ordersSlug = 'orders', paymentMethods, productsSlug = 'products', variantsSlug = 'variants' } = props || {};
     const tenantsSlug = multiTenant?.tenantsSlug || 'tenants';
@@ -31,6 +32,7 @@ export const createTransactionsCollection = (props)=>{
                     fields: [
                         cartItemsField({
                             enableVariants,
+                            multiTenant,
                             overrides: {
                                 name: 'items',
                                 label: ({ t })=>// @ts-expect-error - translations are not typed in plugins yet
@@ -92,6 +94,7 @@ export const createTransactionsCollection = (props)=>{
             admin: {
                 position: 'sidebar'
             },
+            ...withFilterOptions(customerTenantFilterOptions(multiTenant)),
             label: ({ t })=>// @ts-expect-error - translations are not typed in plugins yet
                 t('plugin-ecommerce:customer'),
             relationTo: customersSlug
@@ -111,6 +114,7 @@ export const createTransactionsCollection = (props)=>{
             admin: {
                 position: 'sidebar'
             },
+            ...withFilterOptions(tenantScopedFilterOptions(multiTenant)),
             label: ({ t })=>// @ts-expect-error - translations are not typed in plugins yet
                 t('plugin-ecommerce:order'),
             relationTo: ordersSlug
@@ -121,6 +125,7 @@ export const createTransactionsCollection = (props)=>{
             admin: {
                 position: 'sidebar'
             },
+            ...withFilterOptions(tenantScopedFilterOptions(multiTenant)),
             relationTo: cartsSlug
         },
         ...currenciesConfig ? [

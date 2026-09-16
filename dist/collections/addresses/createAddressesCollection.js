@@ -1,8 +1,9 @@
 import { accessOR } from '../../utilities/accessComposition.js';
+import { customerTenantFilterOptions, withFilterOptions } from '../../utilities/tenantFilterOptions.js';
 import { defaultCountries } from './defaultCountries.js';
 import { beforeChange } from './hooks/beforeChange.js';
 export const createAddressesCollection = (props)=>{
-    const { access, addressFields, customersSlug = 'users' } = props || {};
+    const { access, addressFields, customersSlug = 'users', multiTenant } = props || {};
     const { supportedCountries: supportedCountriesFromProps } = props || {};
     const supportedCountries = supportedCountriesFromProps || defaultCountries;
     const hasOnlyOneCountry = supportedCountries && supportedCountries.length === 1;
@@ -13,6 +14,7 @@ export const createAddressesCollection = (props)=>{
             admin: {
                 position: 'sidebar'
             },
+            ...withFilterOptions(customerTenantFilterOptions(multiTenant)),
             label: ({ t })=>// @ts-expect-error - translations are not typed in plugins yet
                 t('plugin-ecommerce:customer'),
             relationTo: customersSlug

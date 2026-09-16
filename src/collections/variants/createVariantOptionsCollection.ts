@@ -1,21 +1,23 @@
 import type { CollectionConfig, Field } from 'payload'
 
-import type { AccessConfig } from '../../types/index.js'
+import type { AccessConfig, MultiTenantConfig } from '../../types/index.js'
 
 import { populateTenant } from '../../utilities/populateTenant.js'
 import { tenantBaseListFilter } from '../../utilities/tenantBaseListFilter.js'
+import {
+  tenantScopedFilterOptions,
+  withFilterOptions,
+} from '../../utilities/tenantFilterOptions.js'
 import { hasTenantAccess } from '../carts/cartTenantAccess.js'
 
 type Props = {
   access: Pick<AccessConfig, 'isAdmin' | 'publicAccess'>
   /**
    * Multi-tenant configuration for variant options.
-   * When enabled, variant options will have a tenant field and access will be scoped by tenant for admins.
+   * When enabled, variant options will have a tenant field, access will be scoped by tenant for
+   * admins, and the variant type picker is scoped to the same tenant.
    */
-  multiTenant?: {
-    enabled: boolean
-    tenantsSlug?: string
-  }
+  multiTenant?: MultiTenantConfig
   /**
    * Slug of the variant types collection, defaults to 'variantTypes'.
    */
@@ -52,6 +54,7 @@ export const createVariantOptionsCollection: (props: Props) => CollectionConfig 
       admin: {
         readOnly: true,
       },
+      ...withFilterOptions(tenantScopedFilterOptions(multiTenant)),
       relationTo: variantTypesSlug,
       required: true,
     },

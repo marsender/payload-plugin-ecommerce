@@ -2,6 +2,7 @@ import { inventoryField } from '../../../fields/inventoryField.js';
 import { pricesField } from '../../../fields/pricesField.js';
 import { populateTenant } from '../../../utilities/populateTenant.js';
 import { tenantBaseListFilter } from '../../../utilities/tenantBaseListFilter.js';
+import { tenantScopedFilterOptions, withFilterOptions } from '../../../utilities/tenantFilterOptions.js';
 import { hasTenantAccess } from '../../carts/cartTenantAccess.js';
 import { variantsCollectionBeforeChange as beforeChange } from './hooks/beforeChange.js';
 import { validateOptions } from './hooks/validateOptions.js';
@@ -39,6 +40,7 @@ export const createVariantsCollection = (props)=>{
                 position: 'sidebar',
                 readOnly: true
             },
+            ...withFilterOptions(tenantScopedFilterOptions(multiTenant)),
             relationTo: productsSlug,
             required: true
         },
@@ -61,6 +63,7 @@ export const createVariantsCollection = (props)=>{
                 productsSlug,
                 variantTypesSlug
             },
+            ...withFilterOptions(tenantScopedFilterOptions(multiTenant)),
             hasMany: true,
             label: 'Variant options',
             relationTo: variantOptionsSlug,

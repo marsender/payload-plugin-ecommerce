@@ -1,5 +1,5 @@
 import type { CollectionConfig, Field } from 'payload';
-import type { AccessConfig, CurrenciesConfig } from '../../types/index.js';
+import type { AccessConfig, CurrenciesConfig, MultiTenantConfig } from '../../types/index.js';
 type Props = {
     access: Pick<AccessConfig, 'adminOnlyFieldAccess' | 'isAdmin' | 'isDocumentOwner'>;
     /**
@@ -12,6 +12,12 @@ type Props = {
      */
     customersSlug?: string;
     enableVariants?: boolean;
+    /**
+     * Multi-tenant configuration. Orders carry the `tenant` field added by
+     * `@payloadcms/plugin-multi-tenant`; this scopes the pickers that point at collections the
+     * plugin does not manage — the customer and the transactions behind the order.
+     */
+    multiTenant?: MultiTenantConfig;
     /**
      * Slug of the products collection, defaults to 'products'.
      */

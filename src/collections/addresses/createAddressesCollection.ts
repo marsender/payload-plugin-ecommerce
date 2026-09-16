@@ -1,8 +1,12 @@
 import type { CollectionConfig, Field } from 'payload'
 
-import type { AccessConfig, CountryType } from '../../types/index.js'
+import type { AccessConfig, CountryType, MultiTenantConfig } from '../../types/index.js'
 
 import { accessOR } from '../../utilities/accessComposition.js'
+import {
+  customerTenantFilterOptions,
+  withFilterOptions,
+} from '../../utilities/tenantFilterOptions.js'
 import { defaultCountries } from './defaultCountries.js'
 import { beforeChange } from './hooks/beforeChange.js'
 
@@ -16,11 +20,16 @@ type Props = {
    * Slug of the customers collection, defaults to 'users'.
    */
   customersSlug?: string
+  /**
+   * Multi-tenant configuration. Addresses carry the `tenant` field added by
+   * `@payloadcms/plugin-multi-tenant`; this scopes the customer picker to the same tenant.
+   */
+  multiTenant?: MultiTenantConfig
   supportedCountries?: CountryType[]
 }
 
 export const createAddressesCollection: (props: Props) => CollectionConfig = (props) => {
-  const { access, addressFields, customersSlug = 'users' } = props || {}
+  const { access, addressFields, customersSlug = 'users', multiTenant } = props || {}
 
   const { supportedCountries: supportedCountriesFromProps } = props || {}
   const supportedCountries = supportedCountriesFromProps || defaultCountries
@@ -33,6 +42,7 @@ export const createAddressesCollection: (props: Props) => CollectionConfig = (pr
       admin: {
         position: 'sidebar',
       },
+      ...withFilterOptions(customerTenantFilterOptions(multiTenant)),
       label: ({ t }) =>
         // @ts-expect-error - translations are not typed in plugins yet
         t('plugin-ecommerce:customer'),

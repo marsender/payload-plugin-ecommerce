@@ -20,6 +20,13 @@ export const ecommercePlugin = (pluginConfig)=>async (incomingConfig)=>{
             pluginConfig
         });
         const accessConfig = sanitizedPluginConfig.access;
+        /**
+     * Multi-tenancy is resolved once, here, so every collection the plugin creates scopes its
+     * relationship pickers the same way. A collection's own `multiTenant` wins; otherwise the
+     * plugin-level setting applies; `carts.multiTenant` remains the last fallback because it was
+     * the only place this could be configured before the plugin-level key existed.
+     */ const legacyCartsMultiTenant = typeof sanitizedPluginConfig.carts === 'object' ? sanitizedPluginConfig.carts.multiTenant : undefined;
+        const resolveMultiTenant = (specific)=>specific ?? sanitizedPluginConfig.multiTenant ?? legacyCartsMultiTenant;
         // Ensure collections exists
         if (!incomingConfig.collections) {
             incomingConfig.collections = [];
@@ -45,6 +52,7 @@ export const ecommercePlugin = (pluginConfig)=>async (incomingConfig)=>{
                 access: accessConfig,
                 addressFields,
                 customersSlug: collectionSlugMap.customers,
+                multiTenant: resolveMultiTenant(sanitizedPluginConfig.addresses.multiTenant),
                 supportedCountries
             });
             const addressesCollection = sanitizedPluginConfig.addresses && typeof sanitizedPluginConfig.addresses === 'object' && 'addressesCollectionOverride' in sanitizedPluginConfig.addresses && sanitizedPluginConfig.addresses.addressesCollectionOverride ? await sanitizedPluginConfig.addresses.addressesCollectionOverride({
@@ -55,10 +63,7 @@ export const ecommercePlugin = (pluginConfig)=>async (incomingConfig)=>{
         if (productsConfig) {
             // Compute variantsMultiTenant outside the variants block so it's accessible by createProductsCollection
             const variantsConfig = typeof productsConfig.variants === 'boolean' ? undefined : productsConfig.variants;
-            // Get carts config for fallback multiTenant setting (same pattern as transactions)
-            const cartsConfig = typeof sanitizedPluginConfig.carts === 'object' ? sanitizedPluginConfig.carts : {};
-            // Use variants.multiTenant if specified, otherwise fall back to carts.multiTenant
-            const variantsMultiTenant = variantsConfig?.multiTenant ?? cartsConfig.multiTenant;
+            const variantsMultiTenant = resolveMultiTenant(variantsConfig?.multiTenant);
             if (productsConfig.variants) {
                 const defaultVariantsCollection = createVariantsCollection({
                     access: accessConfig,
@@ -112,7 +117,7 @@ export const ecommercePlugin = (pluginConfig)=>async (incomingConfig)=>{
                     currenciesConfig,
                     customersSlug: collectionSlugMap.customers,
                     enableVariants: Boolean(productsConfig.variants),
-                    multiTenant: cartsConfig.multiTenant,
+                    multiTenant: resolveMultiTenant(cartsConfig.multiTenant),
                     productsSlug: collectionSlugMap.products,
                     variantsSlug: collectionSlugMap.variants
                 });
@@ -123,13 +128,16 @@ export const ecommercePlugin = (pluginConfig)=>async (incomingConfig)=>{
             }
         }
         if (sanitizedPluginConfig.orders) {
+            const ordersConfig = typeof sanitizedPluginConfig.orders === 'object' ? sanitizedPluginConfig.orders : {};
             const defaultOrdersCollection = createOrdersCollection({
                 access: accessConfig,
                 addressFields,
                 currenciesConfig,
                 customersSlug: collectionSlugMap.customers,
                 enableVariants,
+                multiTenant: resolveMultiTenant(ordersConfig.multiTenant),
                 productsSlug: collectionSlugMap.products,
+                transactionsSlug: collectionSlugMap.transactions,
                 variantsSlug: collectionSlugMap.variants
             });
             const ordersCollection = sanitizedPluginConfig.orders && typeof sanitizedPluginConfig.orders === 'object' && 'ordersCollectionOverride' in sanitizedPluginConfig.orders && sanitizedPluginConfig.orders.ordersCollectionOverride ? await sanitizedPluginConfig.orders.ordersCollectionOverride({
@@ -193,10 +201,7 @@ export const ecommercePlugin = (pluginConfig)=>async (incomingConfig)=>{
         if (sanitizedPluginConfig.transactions) {
             // Get transactions config object (or empty if just boolean true)
             const transactionsConfig = typeof sanitizedPluginConfig.transactions === 'object' ? sanitizedPluginConfig.transactions : {};
-            // Get carts config for fallback multiTenant setting
-            const cartsConfig = typeof sanitizedPluginConfig.carts === 'object' ? sanitizedPluginConfig.carts : {};
-            // Use transactions.multiTenant if specified, otherwise fall back to carts.multiTenant
-            const transactionsMultiTenant = transactionsConfig.multiTenant ?? cartsConfig.multiTenant;
+            const transactionsMultiTenant = resolveMultiTenant(transactionsConfig.multiTenant);
             const defaultTransactionsCollection = createTransactionsCollection({
                 access: accessConfig,
                 addressFields,

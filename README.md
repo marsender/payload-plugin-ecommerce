@@ -174,18 +174,26 @@ ecommercePlugin({
 })
 ```
 
-### Multi-Tenant Cart Support
+### Multi-Tenant Support
 
-For multi-tenant applications, you can enable tenant isolation for carts while still supporting guest cart access:
+For multi-tenant applications, declare `multiTenant` once on the plugin config. It applies to
+every collection the plugin owns; a collection's own `multiTenant` key still overrides it.
 
 ```typescript
 ecommercePlugin({
+	multiTenant: {
+		enabled: true,
+		tenantsSlug: 'tenants', // default
+		// Leaves a platform super-admin's pickers unscoped when the panel has no tenant
+		// selected. Without it they are scoped to their own memberships, which such a user
+		// typically has none of.
+		userHasAccessToAllTenants: (user) => user?.isSuperAdmin === true,
+		// Only if your customers collection stores memberships under different names.
+		customersTenantsArrayFieldName: 'tenants', // default
+		customersTenantsArrayTenantFieldName: 'tenant', // default
+	},
 	carts: {
 		allowGuestCarts: true,
-		multiTenant: {
-			enabled: true,
-			tenantsSlug: 'tenants', // default
-		},
 	},
 })
 ```
@@ -194,6 +202,16 @@ ecommercePlugin({
 
 #### How it works
 
+0. **Scoped relationship pickers**: every relationship the plugin defines is filtered to the
+   document's tenant — `orders.customer` and `orders.transactions`, `transactions.customer` /
+   `.order` / `.cart`, `carts.customer`, `addresses.customer`, `variants.product` / `.options`,
+   `variantOptions.variantType`, and the product/variant pickers on each cart-items line.
+   `@payloadcms/plugin-multi-tenant` cannot do this for you: it filters a relationship only when
+   the TARGET collection is registered with it, and these are not. Customers are matched through
+   their memberships array, as a customer account is global and has no `tenant` field. The filter
+   is enforced on save as well as in the picker, so it also refuses a cross-tenant id posted
+   straight to the REST API; when no tenant can be established (a programmatic write outside any
+   tenant context) no filter is applied, so it never turns a working write into a failure.
 1. **Tenant field**: A `tenant` relationship field is added to the carts collection (required)
 2. **Auto-population**: The `populateTenant` hook automatically sets the tenant from `payload-tenant` or `payload-tenant-domain` cookies on cart creation. If no valid tenant can be determined, cart creation fails with an error.
 3. **Access control**: The `hasTenantAccess` function provides tenant-scoped access for admins:
@@ -226,7 +244,7 @@ This fork includes the following enhancements:
 
 - **Stripe SDK v20 (Clover)**: Upgraded to Stripe Node.js SDK v20 with API version `2025-09-30.clover`. This version uses Stripe's new biannual release train versioning. See [Stripe's versioning policy](https://docs.stripe.com/sdks/versioning) for details.
 
-- **Multi-tenant cart support**: Added `multiTenant` option to carts configuration. When enabled, carts have a `tenant` field that is auto-populated from cookies, and admin access is scoped by tenant. This allows tenant isolation in the admin panel while still supporting guest cart access via secret tokens. Use this instead of adding carts to the multi-tenant plugin's collections list.
+- **Multi-tenant support**: a plugin-level `multiTenant` option (overridable per collection). Carts, transactions and the variant collections get a `tenant` field auto-populated from cookies plus tenant-scoped admin access, so they can stay out of the multi-tenant plugin's collections list while still supporting guest cart access via secret tokens. On top of that, EVERY relationship picker the plugin defines is scoped to the document's tenant — which the multi-tenant plugin cannot do, since it only filters relationships whose target collection is registered with it.
 
 - **Every Payload call threads `req`**: Local-API calls that run inside a request (hooks, endpoints, payment adapters) all pass `req`, so they join the request's database transaction. A call without `req` takes a fresh pooled connection in a transaction of its own: it cannot see the request's uncommitted writes, it commits even when the request rolls back, and it can deadlock against rows the request has already locked. This is enforced by a `no-restricted-syntax` ESLint rule in `eslint.config.ts` that fails the build on any `payload.*` / `payload.db.*` call whose argument object has no `req` (a conditional spread opts out, marking a deliberate omission).
 

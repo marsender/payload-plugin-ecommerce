@@ -278,6 +278,44 @@ export type PaymentAdapterClientArgs = {
      */
     label?: string;
 };
+/**
+ * Multi-tenant settings shared by every collection the plugin owns.
+ *
+ * The plugin adds a `tenant` field and tenant-scoped admin access to the collections that
+ * `@payloadcms/plugin-multi-tenant` does not manage (carts, transactions, variants), and scopes
+ * every relationship picker it defines so a studio is never offered another studio's customers,
+ * orders, transactions or carts.
+ */
+export type MultiTenantConfig = {
+    /**
+     * Name of the tenant relationship inside each membership of the customers array field.
+     * @default 'tenant'
+     */
+    customersTenantsArrayTenantFieldName?: string;
+    /**
+     * Name of the array field on the customers collection holding a customer's tenant memberships.
+     * Customers are global documents, so their tenant is read from this array rather than from a
+     * `tenant` field.
+     * @default 'tenants'
+     */
+    customersTenantsArrayFieldName?: string;
+    /**
+     * Whether multi-tenant support is enabled.
+     */
+    enabled: boolean;
+    /**
+     * The slug of the tenants collection.
+     * @default 'tenants'
+     */
+    tenantsSlug?: string;
+    /**
+     * Returns true for a user who may act on every tenant (a platform super-admin). Their pickers
+     * are left unscoped when the admin panel has no tenant selected; everyone else falls back to
+     * the tenants they belong to. Without it, such a user is scoped to their own memberships,
+     * which a platform super-admin typically has none of.
+     */
+    userHasAccessToAllTenants?: (user: unknown) => boolean;
+};
 export type VariantsConfig = {
     /**
      * Multi-tenant configuration for variants.
@@ -285,17 +323,7 @@ export type VariantsConfig = {
      * and access will be scoped by tenant for admins.
      * If not specified, falls back to the carts.multiTenant configuration.
      */
-    multiTenant?: {
-        /**
-         * Whether multi-tenant support is enabled.
-         */
-        enabled: boolean;
-        /**
-         * The slug of the tenants collection.
-         * @default 'tenants'
-         */
-        tenantsSlug?: string;
-    };
+    multiTenant?: MultiTenantConfig;
     /**
      * Override the default variants collection. If you override the collection, you should ensure it has the required fields for variants or re-use the default fields.
      *
@@ -399,6 +427,13 @@ export type ProductsConfig = {
 };
 export type OrdersConfig = {
     /**
+     * Multi-tenant configuration for orders.
+     * Orders are normally registered with `@payloadcms/plugin-multi-tenant`, which supplies the
+     * `tenant` field; this only tells the plugin to scope the pickers it defines on them.
+     * If not specified, falls back to the plugin-level `multiTenant` configuration.
+     */
+    multiTenant?: MultiTenantConfig;
+    /**
      * Override the default orders collection. If you override the collection, you should ensure it has the required fields for orders or re-use the default fields.
      *
      * @example
@@ -427,17 +462,7 @@ export type TransactionsConfig = {
      * When enabled, transactions will have a tenant field and access will be scoped by tenant for admins.
      * If not specified, falls back to the carts.multiTenant configuration.
      */
-    multiTenant?: {
-        /**
-         * Whether multi-tenant support is enabled.
-         */
-        enabled: boolean;
-        /**
-         * The slug of the tenants collection.
-         * @default 'tenants'
-         */
-        tenantsSlug?: string;
-    };
+    multiTenant?: MultiTenantConfig;
     /**
      * Override the default transactions collection. If you override the collection, you should ensure it has the required fields for transactions or re-use the default fields.
      *
@@ -486,6 +511,11 @@ export type CountryType = {
  * Configuration for the addresses used by the Ecommerce plugin. Use this to override the default collection or fields used throughout
  */
 type AddressesConfig = {
+    /**
+     * Multi-tenant configuration for addresses.
+     * If not specified, falls back to the plugin-level `multiTenant` configuration.
+     */
+    multiTenant?: MultiTenantConfig;
     /**
      * Override the default addresses collection. If you override the collection, you should ensure it has the required fields for addresses or re-use the default fields.
      *
@@ -561,17 +591,7 @@ export type CartsConfig = {
      * When enabled, carts will have a tenant field and access will be scoped by tenant for admins.
      * Guest access via secret is still supported.
      */
-    multiTenant?: {
-        /**
-         * Whether multi-tenant support is enabled.
-         */
-        enabled: boolean;
-        /**
-         * The slug of the tenants collection.
-         * @default 'tenants'
-         */
-        tenantsSlug?: string;
-    };
+    multiTenant?: MultiTenantConfig;
 };
 export type InventoryConfig = {
     /**
@@ -752,6 +772,19 @@ export type EcommercePluginConfig = {
      */
     inventory?: boolean | InventoryConfig;
     /**
+     * Multi-tenant defaults for every collection the plugin owns. Each collection's own
+     * `multiTenant` key overrides this one.
+     *
+     * ```ts
+     * multiTenant: {
+     *   enabled: true,
+     *   tenantsSlug: 'tenants',
+     *   userHasAccessToAllTenants: (user) => user?.isSuperAdmin === true,
+     * }
+     * ```
+     */
+    multiTenant?: MultiTenantConfig;
+    /**
      * Enables orders and accepts a config object to override the default collection settings.
      *
      * Defaults to true.
@@ -787,10 +820,12 @@ export type SanitizedEcommercePluginConfig = {
     } & Omit<AddressesConfig, 'addressFields'>;
     currencies: Required<CurrenciesConfig>;
     inventory?: InventoryConfig;
+    /** Stays optional: a single-tenant host configures none, and every collection then opts out. */
+    multiTenant?: MultiTenantConfig;
     payments: {
         paymentMethods: [] | PaymentAdapter[];
     };
-} & Omit<Required<EcommercePluginConfig>, 'access' | 'addresses' | 'currencies' | 'inventory' | 'payments'>;
+} & Omit<Required<EcommercePluginConfig>, 'access' | 'addresses' | 'currencies' | 'inventory' | 'multiTenant' | 'payments'>;
 export type EcommerceCollections = TypedEcommerce['collections'];
 export type AddressesCollection = EcommerceCollections['addresses'];
 export type CartsCollection = EcommerceCollections['carts'];

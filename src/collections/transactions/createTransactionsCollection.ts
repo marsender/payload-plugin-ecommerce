@@ -1,6 +1,11 @@
 import type { CollectionConfig, Field } from 'payload'
 
-import type { AccessConfig, CurrenciesConfig, PaymentAdapter } from '../../types/index.js'
+import type {
+  AccessConfig,
+  CurrenciesConfig,
+  MultiTenantConfig,
+  PaymentAdapter,
+} from '../../types/index.js'
 
 import { amountField } from '../../fields/amountField.js'
 import { cartItemsField } from '../../fields/cartItemsField.js'
@@ -8,6 +13,11 @@ import { currencyField } from '../../fields/currencyField.js'
 import { statusField } from '../../fields/statusField.js'
 import { populateTenant } from '../../utilities/populateTenant.js'
 import { tenantBaseListFilter } from '../../utilities/tenantBaseListFilter.js'
+import {
+  customerTenantFilterOptions,
+  tenantScopedFilterOptions,
+  withFilterOptions,
+} from '../../utilities/tenantFilterOptions.js'
 
 type Props = {
   access: Pick<AccessConfig, 'isAdmin'>
@@ -30,19 +40,10 @@ type Props = {
   enableVariants?: boolean
   /**
    * Multi-tenant configuration for transactions.
-   * When enabled, transactions will have a tenant field and access will be scoped by tenant for admins.
+   * When enabled, transactions will have a tenant field, access will be scoped by tenant for
+   * admins, and every relationship picker on the collection is scoped to the same tenant.
    */
-  multiTenant?: {
-    /**
-     * Whether multi-tenant support is enabled.
-     */
-    enabled: boolean
-    /**
-     * The slug of the tenants collection.
-     * @default 'tenants'
-     */
-    tenantsSlug?: string
-  }
+  multiTenant?: MultiTenantConfig
   /**
    * Slug of the orders collection, defaults to 'orders'.
    */
@@ -90,6 +91,7 @@ export const createTransactionsCollection: (props: Props) => CollectionConfig = 
           fields: [
             cartItemsField({
               enableVariants,
+              multiTenant,
               overrides: {
                 name: 'items',
                 label: ({ t }) =>
@@ -162,6 +164,7 @@ export const createTransactionsCollection: (props: Props) => CollectionConfig = 
       admin: {
         position: 'sidebar',
       },
+      ...withFilterOptions(customerTenantFilterOptions(multiTenant)),
       label: ({ t }) =>
         // @ts-expect-error - translations are not typed in plugins yet
         t('plugin-ecommerce:customer'),
@@ -183,6 +186,7 @@ export const createTransactionsCollection: (props: Props) => CollectionConfig = 
       admin: {
         position: 'sidebar',
       },
+      ...withFilterOptions(tenantScopedFilterOptions(multiTenant)),
       label: ({ t }) =>
         // @ts-expect-error - translations are not typed in plugins yet
         t('plugin-ecommerce:order'),
@@ -194,6 +198,7 @@ export const createTransactionsCollection: (props: Props) => CollectionConfig = 
       admin: {
         position: 'sidebar',
       },
+      ...withFilterOptions(tenantScopedFilterOptions(multiTenant)),
       relationTo: cartsSlug,
     },
     ...(currenciesConfig ?

@@ -1,5 +1,5 @@
 import type { CollectionConfig } from 'payload';
-import type { AccessConfig, CurrenciesConfig, InventoryConfig } from '../../../types/index.js';
+import type { AccessConfig, CurrenciesConfig, InventoryConfig, MultiTenantConfig } from '../../../types/index.js';
 type Props = {
     access: Pick<AccessConfig, 'adminOrPublishedStatus' | 'isAdmin'>;
     currenciesConfig?: CurrenciesConfig;
@@ -9,12 +9,10 @@ type Props = {
     inventory?: boolean | InventoryConfig;
     /**
      * Multi-tenant configuration for variants.
-     * When enabled, variants will have a tenant field and access will be scoped by tenant for admins.
+     * When enabled, variants will have a tenant field, access will be scoped by tenant for admins,
+     * and every relationship picker on the collection is scoped to the same tenant.
      */
-    multiTenant?: {
-        enabled: boolean;
-        tenantsSlug?: string;
-    };
+    multiTenant?: MultiTenantConfig;
     /**
      * Slug of the products collection, defaults to 'products'.
      */

@@ -1,11 +1,20 @@
 import type { CollectionConfig, Field } from 'payload'
 
-import type { AccessConfig, CurrenciesConfig, InventoryConfig } from '../../../types/index.js'
+import type {
+  AccessConfig,
+  CurrenciesConfig,
+  InventoryConfig,
+  MultiTenantConfig,
+} from '../../../types/index.js'
 
 import { inventoryField } from '../../../fields/inventoryField.js'
 import { pricesField } from '../../../fields/pricesField.js'
 import { populateTenant } from '../../../utilities/populateTenant.js'
 import { tenantBaseListFilter } from '../../../utilities/tenantBaseListFilter.js'
+import {
+  tenantScopedFilterOptions,
+  withFilterOptions,
+} from '../../../utilities/tenantFilterOptions.js'
 import { hasTenantAccess } from '../../carts/cartTenantAccess.js'
 import { variantsCollectionBeforeChange as beforeChange } from './hooks/beforeChange.js'
 import { validateOptions } from './hooks/validateOptions.js'
@@ -19,12 +28,10 @@ type Props = {
   inventory?: boolean | InventoryConfig
   /**
    * Multi-tenant configuration for variants.
-   * When enabled, variants will have a tenant field and access will be scoped by tenant for admins.
+   * When enabled, variants will have a tenant field, access will be scoped by tenant for admins,
+   * and every relationship picker on the collection is scoped to the same tenant.
    */
-  multiTenant?: {
-    enabled: boolean
-    tenantsSlug?: string
-  }
+  multiTenant?: MultiTenantConfig
   /**
    * Slug of the products collection, defaults to 'products'.
    */
@@ -87,6 +94,7 @@ export const createVariantsCollection: (props: Props) => CollectionConfig = (pro
         position: 'sidebar',
         readOnly: true,
       },
+      ...withFilterOptions(tenantScopedFilterOptions(multiTenant)),
       relationTo: productsSlug,
       required: true,
     },
@@ -109,6 +117,7 @@ export const createVariantsCollection: (props: Props) => CollectionConfig = (pro
         productsSlug,
         variantTypesSlug,
       },
+      ...withFilterOptions(tenantScopedFilterOptions(multiTenant)),
       hasMany: true,
       label: 'Variant options',
       relationTo: variantOptionsSlug,

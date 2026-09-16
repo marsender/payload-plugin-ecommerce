@@ -2,8 +2,9 @@ import { amountField } from '../../fields/amountField.js';
 import { cartItemsField } from '../../fields/cartItemsField.js';
 import { currencyField } from '../../fields/currencyField.js';
 import { accessOR } from '../../utilities/accessComposition.js';
+import { customerTenantFilterOptions, tenantScopedFilterOptions, withFilterOptions } from '../../utilities/tenantFilterOptions.js';
 export const createOrdersCollection = (props)=>{
-    const { access, addressFields, currenciesConfig, customersSlug = 'users', enableVariants = false, productsSlug = 'products', transactionsSlug = 'transactions', variantsSlug = 'variants' } = props || {};
+    const { access, addressFields, currenciesConfig, customersSlug = 'users', enableVariants = false, multiTenant, productsSlug = 'products', transactionsSlug = 'transactions', variantsSlug = 'variants' } = props || {};
     const fields = [
         {
             type: 'tabs',
@@ -12,6 +13,7 @@ export const createOrdersCollection = (props)=>{
                     fields: [
                         cartItemsField({
                             enableVariants,
+                            multiTenant,
                             overrides: {
                                 name: 'items',
                                 label: ({ t })=>// @ts-expect-error - translations are not typed in plugins yet
@@ -53,6 +55,7 @@ export const createOrdersCollection = (props)=>{
             admin: {
                 position: 'sidebar'
             },
+            ...withFilterOptions(customerTenantFilterOptions(multiTenant)),
             label: ({ t })=>// @ts-expect-error - translations are not typed in plugins yet
                 t('plugin-ecommerce:customer'),
             relationTo: customersSlug
@@ -77,6 +80,7 @@ export const createOrdersCollection = (props)=>{
             admin: {
                 position: 'sidebar'
             },
+            ...withFilterOptions(tenantScopedFilterOptions(multiTenant)),
             hasMany: true,
             label: ({ t })=>// @ts-expect-error - translations are not typed in plugins yet
                 t('plugin-ecommerce:transactions'),

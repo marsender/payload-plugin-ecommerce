@@ -1,5 +1,5 @@
 import type { CollectionConfig, Field } from 'payload';
-import type { AccessConfig, CurrenciesConfig, PaymentAdapter } from '../../types/index.js';
+import type { AccessConfig, CurrenciesConfig, MultiTenantConfig, PaymentAdapter } from '../../types/index.js';
 type Props = {
     access: Pick<AccessConfig, 'isAdmin'>;
     /**
@@ -21,19 +21,10 @@ type Props = {
     enableVariants?: boolean;
     /**
      * Multi-tenant configuration for transactions.
-     * When enabled, transactions will have a tenant field and access will be scoped by tenant for admins.
+     * When enabled, transactions will have a tenant field, access will be scoped by tenant for
+     * admins, and every relationship picker on the collection is scoped to the same tenant.
      */
-    multiTenant?: {
-        /**
-         * Whether multi-tenant support is enabled.
-         */
-        enabled: boolean;
-        /**
-         * The slug of the tenants collection.
-         * @default 'tenants'
-         */
-        tenantsSlug?: string;
-    };
+    multiTenant?: MultiTenantConfig;
     /**
      * Slug of the orders collection, defaults to 'orders'.
      */

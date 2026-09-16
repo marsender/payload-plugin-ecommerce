@@ -1,5 +1,6 @@
 import { populateTenant } from '../../utilities/populateTenant.js';
 import { tenantBaseListFilter } from '../../utilities/tenantBaseListFilter.js';
+import { tenantScopedFilterOptions, withFilterOptions } from '../../utilities/tenantFilterOptions.js';
 import { hasTenantAccess } from '../carts/cartTenantAccess.js';
 export const createVariantOptionsCollection = (props)=>{
     const { access, multiTenant, variantTypesSlug = 'variantTypes' } = props || {};
@@ -26,6 +27,7 @@ export const createVariantOptionsCollection = (props)=>{
             admin: {
                 readOnly: true
             },
+            ...withFilterOptions(tenantScopedFilterOptions(multiTenant)),
             relationTo: variantTypesSlug,
             required: true
         },

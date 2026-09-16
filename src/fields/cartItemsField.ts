@@ -1,7 +1,8 @@
 import type { ArrayField, Field } from 'payload'
 
-import type { CurrenciesConfig } from '../types/index.js'
+import type { CurrenciesConfig, MultiTenantConfig } from '../types/index.js'
 
+import { tenantScopedFilterOptions, withFilterOptions } from '../utilities/tenantFilterOptions.js'
 import { amountField } from './amountField.js'
 import { currencyField } from './currencyField.js'
 
@@ -16,6 +17,11 @@ type Props = {
    * Defaults to false.
    */
   individualPrices?: boolean
+  /**
+   * Multi-tenant configuration. Scopes the product and variant pickers on each line to the
+   * tenant of the cart, order or transaction the line belongs to.
+   */
+  multiTenant?: MultiTenantConfig
   overrides?: Partial<ArrayField>
   /**
    * Slug of the products collection, defaults to 'products'.
@@ -32,6 +38,7 @@ export const cartItemsField: (props?: Props) => ArrayField = (props) => {
     currenciesConfig,
     enableVariants = false,
     individualPrices,
+    multiTenant,
     overrides,
     productsSlug = 'products',
     variantsSlug = 'variants',
@@ -47,6 +54,7 @@ export const cartItemsField: (props?: Props) => ArrayField = (props) => {
       {
         name: 'product',
         type: 'relationship',
+        ...withFilterOptions(tenantScopedFilterOptions(multiTenant)),
         label: ({ t }) =>
           // @ts-expect-error - translations are not typed in plugins yet
           t('plugin-ecommerce:product'),
@@ -57,6 +65,7 @@ export const cartItemsField: (props?: Props) => ArrayField = (props) => {
             {
               name: 'variant',
               type: 'relationship',
+              ...withFilterOptions(tenantScopedFilterOptions(multiTenant)),
               label: ({ t }) =>
                 // @ts-expect-error - translations are not typed in plugins yet
                 t('plugin-ecommerce:variant'),

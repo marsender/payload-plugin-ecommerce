@@ -1,5 +1,5 @@
 import type { CollectionConfig, Field } from 'payload';
-import type { AccessConfig, CountryType } from '../../types/index.js';
+import type { AccessConfig, CountryType, MultiTenantConfig } from '../../types/index.js';
 type Props = {
     access: Pick<AccessConfig, 'isAdmin' | 'isAuthenticated' | 'isDocumentOwner'>;
     /**
@@ -10,6 +10,11 @@ type Props = {
      * Slug of the customers collection, defaults to 'users'.
      */
     customersSlug?: string;
+    /**
+     * Multi-tenant configuration. Addresses carry the `tenant` field added by
+     * `@payloadcms/plugin-multi-tenant`; this scopes the customer picker to the same tenant.
+     */
+    multiTenant?: MultiTenantConfig;
     supportedCountries?: CountryType[];
 };
 export declare const createAddressesCollection: (props: Props) => CollectionConfig;

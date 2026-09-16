@@ -9,6 +9,43 @@ PayloadCMS compatibility.
 
 ---
 
+## [3.89.7] — 2026-09-15
+
+### Fixed
+
+- **Relationship pickers are scoped to the tenant.** `@payloadcms/plugin-multi-tenant` adds its
+  tenant filter only to a relationship whose TARGET collection is registered with it, and the
+  collections this plugin owns deliberately are not — so every picker the plugin defines listed
+  every tenant's documents. Creating an order by hand offered every studio's customers and every
+  studio's transactions. Now filtered: `orders.customer` / `orders.transactions`,
+  `transactions.customer` / `.order` / `.cart`, `carts.customer`, `addresses.customer`,
+  `variants.product` / `.options`, `variantOptions.variantType`, and the product and variant
+  pickers on every cart-items line (carts, orders, transactions).
+
+  The filter resolves the tenant from the document, then the `payload-tenant` cookie, then the
+  user's own tenants, and applies none when it can establish none — `filterOptions` is enforced on
+  save as well as in the picker, so a "match nothing" fallback would reject legitimate
+  programmatic writes. Customers are matched through their memberships array
+  (`tenants.tenant`), since a customer account is global and carries no `tenant` field, and for
+  the same reason the customer filter steps aside entirely for a user that
+  `userHasAccessToAllTenants` accepts: such a user typically belongs to no tenant, so the filter
+  could never match them in either direction and would turn their own purchases and hand-fixes
+  into validation errors. A relationship to a tenant-scoped collection needs no such escape —
+  those documents always carry a tenant of their own.
+
+### Added
+
+- **Plugin-level `multiTenant` option.** One `multiTenant: { enabled, tenantsSlug }` on the plugin
+  config now applies to every collection it owns; each collection's own `multiTenant` still
+  overrides it, and `carts.multiTenant` stays the last fallback so existing configs are unchanged.
+  Two new optional keys: `userHasAccessToAllTenants(user)`, which leaves a platform super-admin's
+  pickers unscoped when no tenant is selected (they hold no membership to fall back on), and
+  `customersTenantsArrayFieldName` / `customersTenantsArrayTenantFieldName` for a customers
+  collection whose memberships array is not `tenants[].tenant`.
+- `multiTenant` is now accepted on `orders` and `addresses` too. Those collections are normally
+  registered with `@payloadcms/plugin-multi-tenant` (which supplies their `tenant` field); the
+  option only tells this plugin to scope the pickers it defines on them.
+
 ## [3.89.5] — 2026-09-12
 
 ### Fixed

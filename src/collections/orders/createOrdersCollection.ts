@@ -1,11 +1,16 @@
 import type { CollectionConfig, Field } from 'payload'
 
-import type { AccessConfig, CurrenciesConfig } from '../../types/index.js'
+import type { AccessConfig, CurrenciesConfig, MultiTenantConfig } from '../../types/index.js'
 
 import { amountField } from '../../fields/amountField.js'
 import { cartItemsField } from '../../fields/cartItemsField.js'
 import { currencyField } from '../../fields/currencyField.js'
 import { accessOR } from '../../utilities/accessComposition.js'
+import {
+  customerTenantFilterOptions,
+  tenantScopedFilterOptions,
+  withFilterOptions,
+} from '../../utilities/tenantFilterOptions.js'
 
 type Props = {
   access: Pick<AccessConfig, 'adminOnlyFieldAccess' | 'isAdmin' | 'isDocumentOwner'>
@@ -19,6 +24,12 @@ type Props = {
    */
   customersSlug?: string
   enableVariants?: boolean
+  /**
+   * Multi-tenant configuration. Orders carry the `tenant` field added by
+   * `@payloadcms/plugin-multi-tenant`; this scopes the pickers that point at collections the
+   * plugin does not manage — the customer and the transactions behind the order.
+   */
+  multiTenant?: MultiTenantConfig
   /**
    * Slug of the products collection, defaults to 'products'.
    */
@@ -40,6 +51,7 @@ export const createOrdersCollection: (props: Props) => CollectionConfig = (props
     currenciesConfig,
     customersSlug = 'users',
     enableVariants = false,
+    multiTenant,
     productsSlug = 'products',
     transactionsSlug = 'transactions',
     variantsSlug = 'variants',
@@ -53,6 +65,7 @@ export const createOrdersCollection: (props: Props) => CollectionConfig = (props
           fields: [
             cartItemsField({
               enableVariants,
+              multiTenant,
               overrides: {
                 name: 'items',
                 label: ({ t }) =>
@@ -102,6 +115,7 @@ export const createOrdersCollection: (props: Props) => CollectionConfig = (props
       admin: {
         position: 'sidebar',
       },
+      ...withFilterOptions(customerTenantFilterOptions(multiTenant)),
       label: ({ t }) =>
         // @ts-expect-error - translations are not typed in plugins yet
         t('plugin-ecommerce:customer'),
@@ -128,6 +142,7 @@ export const createOrdersCollection: (props: Props) => CollectionConfig = (props
       admin: {
         position: 'sidebar',
       },
+      ...withFilterOptions(tenantScopedFilterOptions(multiTenant)),
       hasMany: true,
       label: ({ t }) =>
         // @ts-expect-error - translations are not typed in plugins yet

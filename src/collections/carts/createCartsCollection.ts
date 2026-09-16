@@ -1,6 +1,6 @@
 import type { Access, CollectionConfig, Field } from 'payload'
 
-import type { AccessConfig, CurrenciesConfig } from '../../types/index.js'
+import type { AccessConfig, CurrenciesConfig, MultiTenantConfig } from '../../types/index.js'
 import type { CartItemMatcher } from './operations/types.js'
 
 import { amountField } from '../../fields/amountField.js'
@@ -18,6 +18,10 @@ import { hasCartSecretAccess } from './hasCartSecretAccess.js'
 import { populateTenant } from '../../utilities/populateTenant.js'
 import { statusBeforeRead } from './statusBeforeRead.js'
 import { tenantBaseListFilter } from '../../utilities/tenantBaseListFilter.js'
+import {
+  customerTenantFilterOptions,
+  withFilterOptions,
+} from '../../utilities/tenantFilterOptions.js'
 
 type Props = {
   access: Pick<Required<AccessConfig>, 'isAdmin' | 'isAuthenticated' | 'isDocumentOwner'>
@@ -58,20 +62,11 @@ type Props = {
   enableVariants?: boolean
   /**
    * Multi-tenant configuration for carts.
-   * When enabled, carts will have a tenant field and access will be scoped by tenant for admins.
+   * When enabled, carts will have a tenant field, access will be scoped by tenant for admins,
+   * and every relationship picker on the collection is scoped to the same tenant.
    * Guest access via secret is still supported.
    */
-  multiTenant?: {
-    /**
-     * Whether multi-tenant support is enabled.
-     */
-    enabled: boolean
-    /**
-     * The slug of the tenants collection.
-     * @default 'tenants'
-     */
-    tenantsSlug?: string
-  }
+  multiTenant?: MultiTenantConfig
   /**
    * Slug of the products collection, defaults to 'products'.
    */
@@ -113,6 +108,7 @@ export const createCartsCollection: (props: Props) => CollectionConfig = (props)
     : []),
     cartItemsField({
       enableVariants,
+      multiTenant,
       overrides: {
         label: ({ t }) =>
           // @ts-expect-error - translations are not typed in plugins yet
@@ -153,6 +149,7 @@ export const createCartsCollection: (props: Props) => CollectionConfig = (props)
       admin: {
         position: 'sidebar',
       },
+      ...withFilterOptions(customerTenantFilterOptions(multiTenant)),
       label: ({ t }) =>
         // @ts-expect-error - translations are not typed in plugins yet
         t('plugin-ecommerce:customer'),

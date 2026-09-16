@@ -2,7 +2,11 @@ import type { AcceptedLanguages } from '@payloadcms/translations'
 import type { Config, Endpoint } from 'payload'
 
 import type { PluginDefaultTranslationsObject } from './translations/types.js'
-import type { EcommercePluginConfig, SanitizedEcommercePluginConfig } from './types/index.js'
+import type {
+  EcommercePluginConfig,
+  MultiTenantConfig,
+  SanitizedEcommercePluginConfig,
+} from './types/index.js'
 
 import { createAddressesCollection } from './collections/addresses/createAddressesCollection.js'
 import { createCartsCollection } from './collections/carts/createCartsCollection.js'
@@ -29,6 +33,20 @@ export const ecommercePlugin =
     const sanitizedPluginConfig = sanitizePluginConfig({ pluginConfig })
 
     const accessConfig = sanitizedPluginConfig.access
+
+    /**
+     * Multi-tenancy is resolved once, here, so every collection the plugin creates scopes its
+     * relationship pickers the same way. A collection's own `multiTenant` wins; otherwise the
+     * plugin-level setting applies; `carts.multiTenant` remains the last fallback because it was
+     * the only place this could be configured before the plugin-level key existed.
+     */
+    const legacyCartsMultiTenant =
+      typeof sanitizedPluginConfig.carts === 'object'
+        ? sanitizedPluginConfig.carts.multiTenant
+        : undefined
+
+    const resolveMultiTenant = (specific?: MultiTenantConfig): MultiTenantConfig | undefined =>
+      specific ?? sanitizedPluginConfig.multiTenant ?? legacyCartsMultiTenant
 
     // Ensure collections exists
     if (!incomingConfig.collections) {
@@ -65,6 +83,7 @@ export const ecommercePlugin =
         access: accessConfig,
         addressFields,
         customersSlug: collectionSlugMap.customers,
+        multiTenant: resolveMultiTenant(sanitizedPluginConfig.addresses.multiTenant),
         supportedCountries,
       })
 
@@ -86,12 +105,7 @@ export const ecommercePlugin =
       const variantsConfig =
         typeof productsConfig.variants === 'boolean' ? undefined : productsConfig.variants
 
-      // Get carts config for fallback multiTenant setting (same pattern as transactions)
-      const cartsConfig =
-        typeof sanitizedPluginConfig.carts === 'object' ? sanitizedPluginConfig.carts : {}
-
-      // Use variants.multiTenant if specified, otherwise fall back to carts.multiTenant
-      const variantsMultiTenant = variantsConfig?.multiTenant ?? cartsConfig.multiTenant
+      const variantsMultiTenant = resolveMultiTenant(variantsConfig?.multiTenant)
 
       if (productsConfig.variants) {
 
@@ -182,7 +196,7 @@ export const ecommercePlugin =
           currenciesConfig,
           customersSlug: collectionSlugMap.customers,
           enableVariants: Boolean(productsConfig.variants),
-          multiTenant: cartsConfig.multiTenant,
+          multiTenant: resolveMultiTenant(cartsConfig.multiTenant),
           productsSlug: collectionSlugMap.products,
           variantsSlug: collectionSlugMap.variants,
         })
@@ -202,13 +216,18 @@ export const ecommercePlugin =
     }
 
     if (sanitizedPluginConfig.orders) {
+      const ordersConfig =
+        typeof sanitizedPluginConfig.orders === 'object' ? sanitizedPluginConfig.orders : {}
+
       const defaultOrdersCollection = createOrdersCollection({
         access: accessConfig,
         addressFields,
         currenciesConfig,
         customersSlug: collectionSlugMap.customers,
         enableVariants,
+        multiTenant: resolveMultiTenant(ordersConfig.multiTenant),
         productsSlug: collectionSlugMap.products,
+        transactionsSlug: collectionSlugMap.transactions,
         variantsSlug: collectionSlugMap.variants,
       })
 
@@ -299,12 +318,7 @@ export const ecommercePlugin =
           ? sanitizedPluginConfig.transactions
           : {}
 
-      // Get carts config for fallback multiTenant setting
-      const cartsConfig =
-        typeof sanitizedPluginConfig.carts === 'object' ? sanitizedPluginConfig.carts : {}
-
-      // Use transactions.multiTenant if specified, otherwise fall back to carts.multiTenant
-      const transactionsMultiTenant = transactionsConfig.multiTenant ?? cartsConfig.multiTenant
+      const transactionsMultiTenant = resolveMultiTenant(transactionsConfig.multiTenant)
 
       const defaultTransactionsCollection = createTransactionsCollection({
         access: accessConfig,
