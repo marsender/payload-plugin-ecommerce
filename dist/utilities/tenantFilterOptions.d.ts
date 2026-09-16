@@ -33,16 +33,26 @@ export declare const tenantScopedFilterOptions: (multiTenant?: MultiTenantConfig
  * an array field — so they are never registered with the multi-tenant plugin and the filter has
  * to reach into that array instead of a `tenant` field.
  *
- * Unlike {@link tenantScopedFilterOptions} this one lets a user who may act on every tenant name
- * THEMSELVES, whatever the tenant in force. `filterOptions` is enforced on save, not only in the
- * picker, and such a user typically belongs to no tenant at all — so the tenant clause could never
- * match their own account, and their legitimate writes (buying from a tenant's shop, hand-fixing a
- * record naming themselves) would fail validation. A relationship to a tenant-scoped collection
- * has no equivalent case: those documents always carry a tenant of their own.
+ * Unlike {@link tenantScopedFilterOptions} it carries two escapes, because `filterOptions` is
+ * enforced on SAVE as well as in the picker and a customer is not a document of the tenant:
  *
- * Only their own account: stepping aside outright, as this did before, also unscoped the PICKER,
- * so an order created by hand with a tenant selected offered every tenant's accounts as its
- * customer. The escape has to cover the write without widening what the panel lists.
+ *  - **a write with no user at all** — a webhook, a job, a seed — is left unfiltered. Trusted
+ *    server code routinely records a transaction for somebody who is not enrolled in the tenant it
+ *    belongs to: a platform-plan invoice order names its subscriber, a payment webhook records the
+ *    order of a buyer returning to a second tenant. There is no picker to scope in that case, and
+ *    the leak this guards is a request somebody made.
+ *  - **a user naming THEMSELVES** is always allowed, whatever the tenant. A returning buyer is not
+ *    enrolled in a second tenant until they transact with it, and a user who may act on every
+ *    tenant belongs to none at all — so the tenant clause could never match their own account, and
+ *    their own cart, order or address would fail validation.
+ *
+ * Neither escape widens the picker, and that distinction is the point: stepping aside outright for
+ * a user who may act on every tenant, as this did before, offered every tenant's accounts as the
+ * customer of a hand-created order. An escape has to cover the write without widening what the
+ * panel lists.
+ *
+ * A relationship to a tenant-scoped collection has no equivalent case: those documents always
+ * carry a tenant of their own.
  */
 export declare const customerTenantFilterOptions: (multiTenant?: MultiTenantConfig, tenantFieldName?: string) => FilterOptions | undefined;
 /**

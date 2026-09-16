@@ -1,4 +1,6 @@
-import type { CollectionBeforeChangeHook } from 'payload'
+import type { CollectionBeforeChangeHook, ValidationFieldError } from 'payload'
+
+import { ValidationError } from 'payload'
 
 import type { CurrenciesConfig } from '../../types/index.js'
 
@@ -11,23 +13,40 @@ type Props = {
 }
 
 /**
- * Fills a BLANK `amount` from the order's own lines, the way `beforeChangeCart` fills a cart's
- * subtotal.
+ * Fills a blank `amount` from the order's own lines ON CREATE, the way `beforeChangeCart` fills a
+ * cart's subtotal.
  *
- * Only a blank one, and that restriction is the whole design. An order's amount is what was
- * actually charged — after a coupon, and as the payment provider recorded it — so recomputing it
- * on a later save would quietly restate a receipt from today's catalogue prices. An order typed in
- * by hand is what this exists for: its lines are known, and the total is arithmetic nobody should
- * have to do twice.
+ * On create only, and only when blank — that restriction is the whole design. An order's amount is
+ * what was actually charged, after a coupon and as the payment provider recorded it, so pricing it
+ * again later would quietly restate a receipt from today's catalogue. `operation` is what decides
+ * that, not the absence of a value: an order whose amount was never set (one recorded before this
+ * hook existed, say) would otherwise be given one by the next save that touched it.
  *
- * A line whose price cannot be read abandons the whole computation rather than contributing
- * nothing to it: an amount left empty is visible to whoever is entering the order, a total that is
- * silently short by one line is not.
+ * A line whose price cannot be read REFUSES the order rather than pricing it wrong. Leaving the
+ * amount blank was the earlier behaviour and it was worse than it looked: nothing downstream
+ * treats a missing amount as unknown — the confirmation email renders `amount ?? 0` and mails the
+ * customer a receipt for 0,00, and the same zero lands in the tenant's revenue. Whoever is
+ * entering the order can always price it themselves, and an amount they typed is taken as given.
  */
+/**
+ * Refuses the save, pinned to `amount` so the panel shows it against the field the person can act
+ * on: typing the figure themselves is the way through.
+ */
+const unpriceable = (req: Parameters<CollectionBeforeChangeHook>[0]['req'], reason: string) => {
+  req.payload.logger.warn(`${reason}: refusing the order, its amount cannot be computed`)
+
+  const errors: ValidationFieldError[] = [
+    // @ts-expect-error - translations are not typed in plugins yet
+    { message: req.t('plugin-ecommerce:priceNotSet'), path: 'amount' },
+  ]
+
+  return new ValidationError({ collection: 'orders', errors, req }, req.t)
+}
+
 export const beforeChangeOrder: (args: Props) => CollectionBeforeChangeHook =
   ({ currenciesConfig, productsSlug, variantsSlug }) =>
-  async ({ data, req }) => {
-    if (!currenciesConfig || typeof data.amount === 'number') {
+  async ({ data, operation, req }) => {
+    if (operation !== 'create' || !currenciesConfig || typeof data.amount === 'number') {
       return data
     }
     if (!Array.isArray(data.items) || data.items.length === 0) {
@@ -57,8 +76,7 @@ export const beforeChangeOrder: (args: Props) => CollectionBeforeChangeHook =
           : null
 
       if (!source) {
-        req.payload.logger.warn('[order] Cannot price a line with no product: amount left unset')
-        return data
+        throw unpriceable(req, '[order] a line names no product')
       }
 
       let price: unknown
@@ -76,10 +94,10 @@ export const beforeChangeOrder: (args: Props) => CollectionBeforeChangeHook =
       }
 
       if (typeof price !== 'number') {
-        req.payload.logger.warn(
-          `[order] No ${priceField} on ${source.collection} ${source.id}: amount left unset`,
+        throw unpriceable(
+          req,
+          `[order] no ${priceField} on ${source.collection} ${String(source.id)}`,
         )
-        return data
       }
 
       amount += price * quantity
