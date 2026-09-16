@@ -18,30 +18,54 @@ export const createOrdersCollection = (props)=>{
    */ const frozenAfterCreate = {
         update: access.adminOnlyFieldAccess
     };
+    /**
+   * Payload resolves permissions per FIELD, and freezing an array or a group does NOT reach the
+   * inputs inside it: an order's `items` array was locked while the quantity in each of its rows
+   * stayed editable — the worst of both, since the array's own access then refused the write and
+   * the retyped figure came back unchanged with nothing to explain it. Applying the same access to
+   * every named child is what actually locks a row.
+   *
+   * Unnamed wrappers (`row`, `collapsible`) take no access of their own, so they are descended
+   * into rather than annotated.
+   */ const freezeNested = (nested)=>nested.map((field)=>{
+            const next = 'name' in field ? {
+                ...field,
+                access: frozenAfterCreate
+            } : {
+                ...field
+            };
+            if ('fields' in next && Array.isArray(next.fields)) {
+                ;
+                next.fields = freezeNested(next.fields);
+            }
+            return next;
+        });
+    const items = cartItemsField({
+        enableVariants,
+        multiTenant,
+        overrides: {
+            name: 'items',
+            access: frozenAfterCreate,
+            label: ({ t })=>// @ts-expect-error - translations are not typed in plugins yet
+                t('plugin-ecommerce:items'),
+            labels: {
+                plural: ({ t })=>// @ts-expect-error - translations are not typed in plugins yet
+                    t('plugin-ecommerce:items'),
+                singular: ({ t })=>// @ts-expect-error - translations are not typed in plugins yet
+                    t('plugin-ecommerce:item')
+            }
+        },
+        productsSlug,
+        variantsSlug
+    });
+    items.fields = freezeNested(items.fields);
     const fields = [
         {
             type: 'tabs',
             tabs: [
                 {
                     fields: [
-                        cartItemsField({
-                            enableVariants,
-                            multiTenant,
-                            overrides: {
-                                name: 'items',
-                                access: frozenAfterCreate,
-                                label: ({ t })=>// @ts-expect-error - translations are not typed in plugins yet
-                                    t('plugin-ecommerce:items'),
-                                labels: {
-                                    plural: ({ t })=>// @ts-expect-error - translations are not typed in plugins yet
-                                        t('plugin-ecommerce:items'),
-                                    singular: ({ t })=>// @ts-expect-error - translations are not typed in plugins yet
-                                        t('plugin-ecommerce:item')
-                                }
-                            },
-                            productsSlug,
-                            variantsSlug
-                        })
+                        items
                     ],
                     label: ({ t })=>// @ts-expect-error - translations are not typed in plugins yet
                         t('plugin-ecommerce:orderDetails')
@@ -53,7 +77,7 @@ export const createOrdersCollection = (props)=>{
                                 name: 'shippingAddress',
                                 type: 'group',
                                 access: frozenAfterCreate,
-                                fields: addressFields,
+                                fields: freezeNested(addressFields),
                                 label: ({ t })=>// @ts-expect-error - translations are not typed in plugins yet
                                     t('plugin-ecommerce:shippingAddress')
                             }
