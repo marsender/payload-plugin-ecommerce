@@ -2,9 +2,22 @@ import { amountField } from '../../fields/amountField.js';
 import { cartItemsField } from '../../fields/cartItemsField.js';
 import { currencyField } from '../../fields/currencyField.js';
 import { accessOR } from '../../utilities/accessComposition.js';
+import { beforeChangeOrder } from './beforeChange.js';
 import { customerTenantFilterOptions, tenantScopedFilterOptions, toID, withFilterOptions } from '../../utilities/tenantFilterOptions.js';
 export const createOrdersCollection = (props)=>{
     const { access, addressFields, currenciesConfig, customersSlug = 'users', enableVariants = false, multiTenant, productsSlug = 'products', transactionsSlug = 'transactions', variantsSlug = 'variants' } = props || {};
+    /**
+   * After it is created an order is a record of what was bought and paid, not a form: only its
+   * `status` may still move. The host decides who is exempt, through the same
+   * `adminOnlyFieldAccess` knob the `transactions` link already uses.
+   *
+   * `access.update` rather than `admin.readOnly`, because only the former both disables the input
+   * AND refuses the write. A field left editable in the panel while something downstream discards
+   * the change is worse than a locked one: the admin retypes a line, saves, and is handed the old
+   * value back with no error to explain it.
+   */ const frozenAfterCreate = {
+        update: access.adminOnlyFieldAccess
+    };
     const fields = [
         {
             type: 'tabs',
@@ -16,6 +29,7 @@ export const createOrdersCollection = (props)=>{
                             multiTenant,
                             overrides: {
                                 name: 'items',
+                                access: frozenAfterCreate,
                                 label: ({ t })=>// @ts-expect-error - translations are not typed in plugins yet
                                     t('plugin-ecommerce:items'),
                                 labels: {
@@ -38,6 +52,7 @@ export const createOrdersCollection = (props)=>{
                             {
                                 name: 'shippingAddress',
                                 type: 'group',
+                                access: frozenAfterCreate,
                                 fields: addressFields,
                                 label: ({ t })=>// @ts-expect-error - translations are not typed in plugins yet
                                     t('plugin-ecommerce:shippingAddress')
@@ -52,6 +67,7 @@ export const createOrdersCollection = (props)=>{
         {
             name: 'customer',
             type: 'relationship',
+            access: frozenAfterCreate,
             admin: {
                 position: 'sidebar'
             },
@@ -63,6 +79,7 @@ export const createOrdersCollection = (props)=>{
         {
             name: 'customerEmail',
             type: 'email',
+            access: frozenAfterCreate,
             admin: {
                 position: 'sidebar',
                 // The address the order was placed with, not a field to fill in: a checkout writes the
@@ -159,10 +176,16 @@ export const createOrdersCollection = (props)=>{
                 },
                 fields: [
                     amountField({
-                        currenciesConfig
+                        currenciesConfig,
+                        overrides: {
+                            access: frozenAfterCreate
+                        }
                     }),
                     currencyField({
-                        currenciesConfig
+                        currenciesConfig,
+                        overrides: {
+                            access: frozenAfterCreate
+                        }
                     })
                 ]
             }
@@ -183,6 +206,15 @@ export const createOrdersCollection = (props)=>{
             useAsTitle: 'createdAt'
         },
         fields,
+        hooks: {
+            beforeChange: [
+                beforeChangeOrder({
+                    currenciesConfig,
+                    productsSlug,
+                    variantsSlug
+                })
+            ]
+        },
         labels: {
             plural: ({ t })=>// @ts-expect-error - translations are not typed in plugins yet
                 t('plugin-ecommerce:orders'),
