@@ -9,6 +9,7 @@ import { accessOR } from '../../utilities/accessComposition.js'
 import {
   customerTenantFilterOptions,
   tenantScopedFilterOptions,
+  toID,
   withFilterOptions,
 } from '../../utilities/tenantFilterOptions.js'
 
@@ -126,6 +127,43 @@ export const createOrdersCollection: (props: Props) => CollectionConfig = (props
       type: 'email',
       admin: {
         position: 'sidebar',
+        // The address the order was placed with, not a field to fill in: a checkout writes the
+        // guest's own email here, and an order naming a customer takes it from that account
+        // below. Typing a third value would only invent a recipient nothing sends to.
+        readOnly: true,
+      },
+      hooks: {
+        beforeChange: [
+          async ({ data, req, siblingData, value }) => {
+            // Only ever fills a blank: the stored address is a snapshot of who ordered, and an
+            // account that later changes its email must not rewrite the orders behind it.
+            if (value) {
+              return value
+            }
+
+            const customerID = toID(
+              (data as Record<string, unknown> | undefined)?.customer ??
+                (siblingData as Record<string, unknown> | undefined)?.customer,
+            )
+            if (customerID === null) {
+              return value
+            }
+
+            try {
+              const customer = await req.payload.findByID({
+                id: customerID,
+                collection: customersSlug as 'users',
+                depth: 0,
+                req,
+              })
+              return (customer as { email?: string })?.email ?? value
+            } catch {
+              // A customer that cannot be read is not a reason to refuse the order: the picker
+              // and `filterOptions` already decide whether naming them is legal at all.
+              return value
+            }
+          },
+        ],
       },
       label: ({ t }) =>
         // @ts-expect-error - translations are not typed in plugins yet

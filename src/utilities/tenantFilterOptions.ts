@@ -10,7 +10,8 @@ import type { MultiTenantConfig } from '../types/index.js'
  */
 const TENANT_COOKIE = 'payload-tenant'
 
-const toID = (value: unknown): null | number | string => {
+/** Narrows a relationship value — an id, or a populated document — to its id. */
+export const toID = (value: unknown): null | number | string => {
   if (typeof value === 'number') {
     return value
   }
@@ -122,12 +123,16 @@ export const tenantScopedFilterOptions = (
  * an array field — so they are never registered with the multi-tenant plugin and the filter has
  * to reach into that array instead of a `tenant` field.
  *
- * Unlike {@link tenantScopedFilterOptions} this one steps aside for a user who may act on every
- * tenant. `filterOptions` is enforced on save, not only in the picker, and such a user typically
- * belongs to no tenant at all — so the filter could never match them in either direction, and
- * would turn their own legitimate writes (buying from a studio, hand-fixing a record naming
- * themselves) into validation errors. A relationship to a tenant-scoped collection has no
- * equivalent case: those documents always carry a tenant of their own.
+ * Unlike {@link tenantScopedFilterOptions} this one lets a user who may act on every tenant name
+ * THEMSELVES, whatever the tenant in force. `filterOptions` is enforced on save, not only in the
+ * picker, and such a user typically belongs to no tenant at all — so the tenant clause could never
+ * match their own account, and their legitimate writes (buying from a tenant's shop, hand-fixing a
+ * record naming themselves) would fail validation. A relationship to a tenant-scoped collection
+ * has no equivalent case: those documents always carry a tenant of their own.
+ *
+ * Only their own account: stepping aside outright, as this did before, also unscoped the PICKER,
+ * so an order created by hand with a tenant selected offered every tenant's accounts as its
+ * customer. The escape has to cover the write without widening what the panel lists.
  */
 export const customerTenantFilterOptions = (
   multiTenant?: MultiTenantConfig,
@@ -141,14 +146,21 @@ export const customerTenantFilterOptions = (
   const arrayTenantFieldName = multiTenant.customersTenantsArrayTenantFieldName ?? 'tenant'
 
   return (args) => {
-    if (multiTenant.userHasAccessToAllTenants?.(args.req.user)) {
-      return true
-    }
     const tenantIDs = resolveFilterTenantIDs(args, multiTenant, tenantFieldName)
     if (!tenantIDs) {
       return true
     }
-    return { [`${arrayFieldName}.${arrayTenantFieldName}`]: { in: tenantIDs } } as Where
+
+    const inTenant = {
+      [`${arrayFieldName}.${arrayTenantFieldName}`]: { in: tenantIDs },
+    } as Where
+
+    const userID = toID(args.req.user)
+    if (multiTenant.userHasAccessToAllTenants?.(args.req.user) && userID !== null) {
+      return { or: [inTenant, { id: { equals: userID } }] } as Where
+    }
+
+    return inTenant
   }
 }
 
