@@ -676,12 +676,24 @@ export type CurrenciesConfig = {
  */
 export type ProductsValidation = (args: {
   /**
-   * The cart being paid for. Carries the buyer's identity when there is no authenticated user,
-   * which is the only way to know who is buying on a guest checkout.
+   * The cart being paid for. Two things only it can answer: who is buying when there is no
+   * authenticated user (a guest checkout), and what ELSE the cart holds.
+   *
+   * `items` matters because this function is called once per cart line. A rule about the cart as
+   * a whole (a per-customer purchase ceiling, a bundle restriction) cannot be expressed from the
+   * single line it is handed: the same product on two lines, one per variant, would be judged
+   * twice in isolation and pass twice.
    */
   cart: {
     customerEmail?: null | string
     id: DefaultDocumentIDType
+    items?:
+      | {
+          product?: DefaultDocumentIDType | null | { id: DefaultDocumentIDType }
+          quantity?: null | number
+          variant?: DefaultDocumentIDType | null | { id: DefaultDocumentIDType }
+        }[]
+      | null
   }
   /**
    * The full currencies config, allowing you to check against supported currencies and their settings.
