@@ -1,9 +1,10 @@
 import { addDataAndFileToRequest } from 'payload';
+import { GuestCheckoutDisabled } from '../utilities/errorCodes.js';
 import { decrementInventoryForTransaction } from '../utilities/decrementInventoryForTransaction.js';
 /**
  * Handles the endpoint for initiating payments. We will handle checking the amount and product and variant prices here before it is sent to the payment provider.
  * This is the first step in the payment process.
- */ export const confirmOrderHandler = ({ cartsSlug = 'carts', currenciesConfig, customersSlug = 'users', ordersSlug = 'orders', paymentMethod, productsSlug = 'products', productsValidation: _productsValidation, transactionsSlug = 'transactions', variantsSlug = 'variants' })=>async (req)=>{
+ */ export const confirmOrderHandler = ({ allowGuestCheckout = true, cartsSlug = 'carts', currenciesConfig, customersSlug = 'users', ordersSlug = 'orders', paymentMethod, productsSlug = 'products', productsValidation: _productsValidation, transactionsSlug = 'transactions', variantsSlug = 'variants' })=>async (req)=>{
         await addDataAndFileToRequest(req);
         const data = req.data;
         const payload = req.payload;
@@ -24,6 +25,17 @@ import { decrementInventoryForTransaction } from '../utilities/decrementInventor
                     }
                 }
             }
+        } else if (!allowGuestCheckout) {
+            // Mirrors the gate in `initiatePayment`. Unreachable in practice once that one refuses,
+            // but the two endpoints are mounted independently and a consumer may call either.
+            return Response.json({
+                cause: {
+                    code: GuestCheckoutDisabled
+                },
+                message: 'An account is required to complete this purchase.'
+            }, {
+                status: 401
+            });
         } else {
             // Get the email from the data if user is not available
             if (data?.customerEmail && typeof data.customerEmail === 'string') {

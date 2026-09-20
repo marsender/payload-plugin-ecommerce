@@ -2,9 +2,15 @@ import { addDataAndFileToRequest, type DefaultDocumentIDType, type Endpoint } fr
 
 import type { CurrenciesConfig, PaymentAdapter, ProductsValidation } from '../types/index.js'
 
+import { GuestCheckoutDisabled } from '../utilities/errorCodes.js'
+
 import { decrementInventoryForTransaction } from '../utilities/decrementInventoryForTransaction.js'
 
 type Args = {
+	/**
+	 * Allow an unauthenticated caller to pay. Defaults to true.
+	 */
+	allowGuestCheckout?: boolean
 	/**
 	 * The slug of the carts collection, defaults to 'carts'.
 	 */
@@ -44,7 +50,7 @@ type ConfirmOrderHandler = (args: Args) => Endpoint['handler']
  * This is the first step in the payment process.
  */
 export const confirmOrderHandler: ConfirmOrderHandler =
-	({ cartsSlug = 'carts', currenciesConfig, customersSlug = 'users', ordersSlug = 'orders', paymentMethod, productsSlug = 'products', productsValidation: _productsValidation, transactionsSlug = 'transactions', variantsSlug = 'variants' }) =>
+	({ allowGuestCheckout = true, cartsSlug = 'carts', currenciesConfig, customersSlug = 'users', ordersSlug = 'orders', paymentMethod, productsSlug = 'products', productsValidation: _productsValidation, transactionsSlug = 'transactions', variantsSlug = 'variants' }) =>
 	async (req) => {
 		await addDataAndFileToRequest(req)
 
@@ -69,6 +75,18 @@ export const confirmOrderHandler: ConfirmOrderHandler =
 					}
 				}
 			}
+		} else if (!allowGuestCheckout) {
+			// Mirrors the gate in `initiatePayment`. Unreachable in practice once that one refuses,
+			// but the two endpoints are mounted independently and a consumer may call either.
+			return Response.json(
+				{
+					cause: { code: GuestCheckoutDisabled },
+					message: 'An account is required to complete this purchase.',
+				},
+				{
+					status: 401,
+				}
+			)
 		} else {
 			// Get the email from the data if user is not available
 			if (data?.customerEmail && typeof data.customerEmail === 'string') {

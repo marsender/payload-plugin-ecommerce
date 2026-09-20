@@ -59,16 +59,23 @@ export const sanitizePluginConfig = ({ pluginConfig }: Props): SanitizedEcommerc
   if (typeof config.carts === 'undefined') {
     config.carts = {
       allowGuestCarts: true,
+      allowGuestCheckout: true,
     }
   } else if (config.carts === true) {
     config.carts = {
       allowGuestCarts: true,
+      allowGuestCheckout: true,
     }
-  } else if (
-    typeof config.carts === 'object' &&
-    typeof config.carts.allowGuestCarts === 'undefined'
-  ) {
-    config.carts.allowGuestCarts = true
+  } else if (typeof config.carts === 'object') {
+    if (typeof config.carts.allowGuestCarts === 'undefined') {
+      config.carts.allowGuestCarts = true
+    }
+
+    // Defaulted separately from `allowGuestCarts`: the two govern different things (holding a
+    // cart vs paying) and a consumer routinely wants them set to opposite values.
+    if (typeof config.carts.allowGuestCheckout === 'undefined') {
+      config.carts.allowGuestCheckout = true
+    }
   }
 
   if (typeof config.orders === 'undefined') {

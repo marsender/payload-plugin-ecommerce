@@ -198,12 +198,13 @@ describe('sanitizePluginConfig', ()=>{
         });
     });
     describe('carts', ()=>{
-        it('should default carts to object with allowGuestCarts true when undefined', ()=>{
+        it('should default carts to object with both guest flags true when undefined', ()=>{
             const result = sanitizePluginConfig({
                 pluginConfig: minimalConfig
             });
             expect(result.carts).toEqual({
-                allowGuestCarts: true
+                allowGuestCarts: true,
+                allowGuestCheckout: true
             });
         });
         it('should convert carts true to object with allowGuestCarts true', ()=>{
@@ -215,7 +216,8 @@ describe('sanitizePluginConfig', ()=>{
                 pluginConfig: config
             });
             expect(result.carts).toEqual({
-                allowGuestCarts: true
+                allowGuestCarts: true,
+                allowGuestCheckout: true
             });
         });
         it('should preserve carts false', ()=>{
@@ -228,7 +230,7 @@ describe('sanitizePluginConfig', ()=>{
             });
             expect(result.carts).toBe(false);
         });
-        it('should default allowGuestCarts to true when carts is object without it', ()=>{
+        it('should default both guest flags to true when carts is object without them', ()=>{
             const config = {
                 ...minimalConfig,
                 carts: {}
@@ -237,7 +239,8 @@ describe('sanitizePluginConfig', ()=>{
                 pluginConfig: config
             });
             expect(result.carts).toEqual({
-                allowGuestCarts: true
+                allowGuestCarts: true,
+                allowGuestCheckout: true
             });
         });
         it('should preserve explicit allowGuestCarts false', ()=>{
@@ -251,7 +254,25 @@ describe('sanitizePluginConfig', ()=>{
                 pluginConfig: config
             });
             expect(result.carts).toEqual({
-                allowGuestCarts: false
+                allowGuestCarts: false,
+                allowGuestCheckout: true
+            });
+        });
+        // The two flags are independent on purpose: holding a cart and paying are different
+        // permissions, and "fill a basket signed out, but pay with an account" is the common shape.
+        it('should default the two guest flags independently', ()=>{
+            const config = {
+                ...minimalConfig,
+                carts: {
+                    allowGuestCheckout: false
+                }
+            };
+            const result = sanitizePluginConfig({
+                pluginConfig: config
+            });
+            expect(result.carts).toEqual({
+                allowGuestCarts: true,
+                allowGuestCheckout: false
             });
         });
         it('should preserve other carts config properties', ()=>{

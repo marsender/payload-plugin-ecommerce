@@ -24,5 +24,7 @@ export { removeItem } from './collections/carts/operations/removeItem.js';
 export { updateItem } from './collections/carts/operations/updateItem.js';
 export { isNumericOperator } from './collections/carts/operations/types.js';
 export { withCartLock } from './utilities/withCartLock.js';
+export { defaultProductsValidation } from './utilities/defaultProductsValidation.js';
+export { GuestCheckoutDisabled, MissingPrice, OutOfStock } from './utilities/errorCodes.js';
 export type { AddItemArgs, CartItemData, CartItemMatcher, CartItemMatcherArgs, CartOperationResult, ClearCartArgs, FieldWithOperator, NewCartItem, NumericOperator, RemoveItemArgs, UpdateItemArgs, } from './collections/carts/operations/types.js';
 //# sourceMappingURL=index.d.ts.map

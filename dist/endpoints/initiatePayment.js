@@ -1,9 +1,10 @@
 import { addDataAndFileToRequest } from 'payload';
+import { GuestCheckoutDisabled } from '../utilities/errorCodes.js';
 import { defaultProductsValidation } from '../utilities/defaultProductsValidation.js';
 /**
  * Handles the endpoint for initiating payments. We will handle checking the amount and product and variant prices here before it is sent to the payment provider.
  * This is the first step in the payment process.
- */ export const initiatePaymentHandler = ({ cartsSlug = 'carts', currenciesConfig, customersSlug = 'users', paymentMethod, productsSlug = 'products', productsValidation, transactionsSlug = 'transactions', variantsSlug = 'variants' })=>async (req)=>{
+ */ export const initiatePaymentHandler = ({ allowGuestCheckout = true, cartsSlug = 'carts', currenciesConfig, customersSlug = 'users', paymentMethod, productsSlug = 'products', productsValidation, transactionsSlug = 'transactions', variantsSlug = 'variants' })=>async (req)=>{
         await addDataAndFileToRequest(req);
         const data = req.data;
         const payload = req.payload;
@@ -26,6 +27,19 @@ import { defaultProductsValidation } from '../utilities/defaultProductsValidatio
                     }
                 }
             }
+        } else if (!allowGuestCheckout) {
+            // Paying is gated separately from holding a cart: a guest may have been allowed to fill a
+            // basket and still owe an account before any money moves. Without this an unauthenticated
+            // POST carrying any `customerEmail` buys, which voids every per-customer rule a consumer
+            // applies in `productsValidation`.
+            return Response.json({
+                cause: {
+                    code: GuestCheckoutDisabled
+                },
+                message: 'An account is required to complete this purchase.'
+            }, {
+                status: 401
+            });
         } else {
             // Get the email from the data if user is not available
             if (data?.customerEmail && typeof data.customerEmail === 'string') {
@@ -99,102 +113,68 @@ import { defaultProductsValidation } from '../utilities/defaultProductsValidatio
             });
         }
         for (const item of cart.items){
-            // Target field to check the price based on the currency so we can validate the total
-            const priceField = `priceIn${currency.toUpperCase()}`;
             const quantity = item.quantity || 1;
-            // If the item has a product but no variant, we assume the product has a price in the specified currency
-            if (item.product && !item.variant) {
-                const id = typeof item.product === 'object' ? item.product.id : item.product;
-                const product = await payload.findByID({
-                    id,
-                    collection: productsSlug,
-                    depth: 0,
-                    req,
-                    select: {
-                        inventory: true,
-                        [priceField]: true
-                    }
+            if (!item.product) {
+                continue;
+            }
+            const productID = typeof item.product === 'object' ? item.product.id : item.product;
+            // Deliberately no `select`: `productsValidation` is a consumer extension point, and a
+            // projection of the fields this plugin happens to know about hands it `undefined` for
+            // every field the consumer added to its own products collection.
+            const product = await payload.findByID({
+                id: productID,
+                collection: productsSlug,
+                depth: 0,
+                req
+            });
+            if (!product) {
+                return Response.json({
+                    message: `Product with ID ${productID} not found.`
+                }, {
+                    status: 404
                 });
-                if (!product) {
+            }
+            let variant = undefined;
+            if (item.variant) {
+                const variantID = typeof item.variant === 'object' ? item.variant.id : item.variant;
+                variant = await payload.findByID({
+                    id: variantID,
+                    collection: variantsSlug,
+                    depth: 0,
+                    req
+                });
+                if (!variant) {
                     return Response.json({
-                        message: `Product with ID ${item.product} not found.`
+                        message: `Variant with ID ${variantID} not found.`
                     }, {
                         status: 404
                     });
                 }
-                try {
-                    if (productsValidation) {
-                        await productsValidation({
-                            currenciesConfig,
-                            currency,
-                            product,
-                            quantity
-                        });
-                    } else {
-                        await defaultProductsValidation({
-                            currenciesConfig,
-                            currency,
-                            product,
-                            quantity
-                        });
-                    }
-                } catch (error) {
-                    payload.logger.error(error, 'Error validating product or variant during payment initiation.');
-                    return Response.json({
-                        message: error,
-                        ...error instanceof Error ? {
-                            cause: error.cause
-                        } : {}
-                    }, {
-                        status: 400
-                    });
-                }
-                if (item.variant) {
-                    const id = typeof item.variant === 'object' ? item.variant.id : item.variant;
-                    const variant = await payload.findByID({
-                        id,
-                        collection: variantsSlug,
-                        depth: 0,
-                        req,
-                        select: {
-                            inventory: true,
-                            [priceField]: true
-                        }
-                    });
-                    if (!variant) {
-                        return Response.json({
-                            message: `Variant with ID ${item.variant} not found.`
-                        }, {
-                            status: 404
-                        });
-                    }
-                    try {
-                        if (productsValidation) {
-                            await productsValidation({
-                                currenciesConfig,
-                                currency,
-                                product: item.product,
-                                quantity,
-                                variant
-                            });
-                        } else {
-                            await defaultProductsValidation({
-                                currenciesConfig,
-                                currency,
-                                product: item.product,
-                                quantity,
-                                variant
-                            });
-                        }
-                    } catch (error) {
-                        payload.logger.error(error, 'Error validating product or variant during payment initiation.');
-                        return Response.json({
-                            message: error
-                        }, {
-                            status: 400
-                        });
-                    }
-                }
+            }
+            // One call per line, variant or not. The variant branch used to be nested inside an
+            // `item.product && !item.variant` guard, so it was unreachable and a variant line went
+            // through with no price or stock check at all.
+            try {
+                const validate = productsValidation ?? defaultProductsValidation;
+                await validate({
+                    cart,
+                    currenciesConfig,
+                    currency,
+                    product,
+                    quantity,
+                    req,
+                    variant
+                });
+            } catch (error) {
+                payload.logger.error(error, 'Error validating product or variant during payment initiation.');
+                return Response.json({
+                    message: error,
+                    ...error instanceof Error ? {
+                        cause: error.cause
+                    } : {}
+                }, {
+                    status: 400
+                });
             }
         }
         try {

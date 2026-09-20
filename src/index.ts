@@ -257,12 +257,21 @@ export const ecommercePlugin =
             sanitizedPluginConfig.products.validation) ||
           undefined
 
+        // Whether an unauthenticated caller may pay. Read from the carts config because that is
+        // where its sibling `allowGuestCarts` lives, but it governs the payment endpoints, not
+        // the carts collection: the two are routinely set to opposite values.
+        const allowGuestCheckout =
+          typeof sanitizedPluginConfig.carts === 'object'
+            ? sanitizedPluginConfig.carts.allowGuestCheckout !== false
+            : true
+
         paymentMethods.forEach((paymentMethod) => {
           const methodPath = `/payments/${paymentMethod.name}`
           const endpoints: Endpoint[] = []
 
           const initiatePayment: Endpoint = {
             handler: initiatePaymentHandler({
+              allowGuestCheckout,
               currenciesConfig,
               inventory: sanitizedPluginConfig.inventory,
               paymentMethod,
@@ -277,6 +286,7 @@ export const ecommercePlugin =
 
           const confirmOrder: Endpoint = {
             handler: confirmOrderHandler({
+              allowGuestCheckout,
               cartsSlug: collectionSlugMap.carts,
               currenciesConfig,
               ordersSlug: collectionSlugMap.orders,
@@ -420,6 +430,11 @@ export { removeItem } from './collections/carts/operations/removeItem.js'
 export { updateItem } from './collections/carts/operations/updateItem.js'
 export { isNumericOperator } from './collections/carts/operations/types.js'
 export { withCartLock } from './utilities/withCartLock.js'
+
+// Product validation - so a consumer setting `products.validation` can still run the price and
+// inventory checks it replaces, instead of silently dropping them from every checkout.
+export { defaultProductsValidation } from './utilities/defaultProductsValidation.js'
+export { GuestCheckoutDisabled, MissingPrice, OutOfStock } from './utilities/errorCodes.js'
 export type {
   AddItemArgs,
   CartItemData,

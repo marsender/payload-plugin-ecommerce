@@ -191,11 +191,12 @@ describe('sanitizePluginConfig', () => {
   })
 
   describe('carts', () => {
-    it('should default carts to object with allowGuestCarts true when undefined', () => {
+    it('should default carts to object with both guest flags true when undefined', () => {
       const result = sanitizePluginConfig({ pluginConfig: minimalConfig })
 
       expect(result.carts).toEqual({
         allowGuestCarts: true,
+        allowGuestCheckout: true,
       })
     })
 
@@ -209,6 +210,7 @@ describe('sanitizePluginConfig', () => {
 
       expect(result.carts).toEqual({
         allowGuestCarts: true,
+        allowGuestCheckout: true,
       })
     })
 
@@ -223,7 +225,7 @@ describe('sanitizePluginConfig', () => {
       expect(result.carts).toBe(false)
     })
 
-    it('should default allowGuestCarts to true when carts is object without it', () => {
+    it('should default both guest flags to true when carts is object without them', () => {
       const config: EcommercePluginConfig = {
         ...minimalConfig,
         carts: {} as any,
@@ -233,6 +235,7 @@ describe('sanitizePluginConfig', () => {
 
       expect(result.carts).toEqual({
         allowGuestCarts: true,
+        allowGuestCheckout: true,
       })
     })
 
@@ -248,6 +251,25 @@ describe('sanitizePluginConfig', () => {
 
       expect(result.carts).toEqual({
         allowGuestCarts: false,
+        allowGuestCheckout: true,
+      })
+    })
+
+    // The two flags are independent on purpose: holding a cart and paying are different
+    // permissions, and "fill a basket signed out, but pay with an account" is the common shape.
+    it('should default the two guest flags independently', () => {
+      const config: EcommercePluginConfig = {
+        ...minimalConfig,
+        carts: {
+          allowGuestCheckout: false,
+        },
+      }
+
+      const result = sanitizePluginConfig({ pluginConfig: config })
+
+      expect(result.carts).toEqual({
+        allowGuestCarts: true,
+        allowGuestCheckout: false,
       })
     })
 

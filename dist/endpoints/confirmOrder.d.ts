@@ -2,6 +2,10 @@ import { type Endpoint } from 'payload';
 import type { CurrenciesConfig, PaymentAdapter, ProductsValidation } from '../types/index.js';
 type Args = {
     /**
+     * Allow an unauthenticated caller to pay. Defaults to true.
+     */
+    allowGuestCheckout?: boolean;
+    /**
      * The slug of the carts collection, defaults to 'carts'.
      */
     cartsSlug?: string;

@@ -613,6 +613,15 @@ export type CartsConfig = {
    */
   allowGuestCarts?: boolean
   /**
+   * Allow guest (unauthenticated) users to pay.
+   * Independent of `allowGuestCarts`: a guest may be allowed to fill a basket and still be
+   * required to have an account before checking out. When false, `initiatePayment` and
+   * `confirmOrder` refuse an unauthenticated caller with a 401 instead of accepting a
+   * `customerEmail` in the request body.
+   * Defaults to true.
+   */
+  allowGuestCheckout?: boolean
+  /**
    * Custom function to determine if two cart items should be considered the same.
    * When items match, their quantities are combined instead of creating separate entries.
    *
@@ -667,6 +676,14 @@ export type CurrenciesConfig = {
  */
 export type ProductsValidation = (args: {
   /**
+   * The cart being paid for. Carries the buyer's identity when there is no authenticated user,
+   * which is the only way to know who is buying on a guest checkout.
+   */
+  cart: {
+    customerEmail?: null | string
+    id: DefaultDocumentIDType
+  }
+  /**
    * The full currencies config, allowing you to check against supported currencies and their settings.
    */
   currenciesConfig?: CurrenciesConfig
@@ -682,6 +699,11 @@ export type ProductsValidation = (args: {
    * Quantity to check the inventory amount against.
    */
   quantity: number
+  /**
+   * The request being validated. `req.user` is the buyer when signed in, and `req.payload` lets a
+   * consumer run its own queries (a per-customer purchase limit, an entitlement check).
+   */
+  req: PayloadRequest
   /**
    * The full variant data, if a variant was selected for the product otherwise it will be undefined.
    */

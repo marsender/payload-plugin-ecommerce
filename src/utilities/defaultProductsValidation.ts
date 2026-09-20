@@ -3,10 +3,12 @@ import type { ProductsValidation } from '../types/index.js'
 import { MissingPrice, OutOfStock } from './errorCodes.js'
 
 export const defaultProductsValidation: ProductsValidation = ({
+  cart: _cart,
   currenciesConfig: _currenciesConfig,
   currency,
   product,
   quantity = 1,
+  req: _req,
   variant,
 }) => {
   if (!currency) {
