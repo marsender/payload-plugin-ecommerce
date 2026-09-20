@@ -2,6 +2,7 @@ import type { DefaultDocumentIDType, PayloadRequest } from 'payload'
 import type Stripe from 'stripe'
 
 import { decrementInventoryForTransaction } from '../../../utilities/decrementInventoryForTransaction.js'
+import { withSystemWrite } from '../../../utilities/withSystemWrite.js'
 import { withCartLock } from '../../../utilities/withCartLock.js'
 
 /** The one Stripe call settling needs, so a caller (or a test) can hand in its own client. */
@@ -209,49 +210,56 @@ export const settlePaymentIntent = async ({
 
 		const buyerID = idOf(current.customer)
 
-		const order = await payload.create({
-			collection: ordersSlug,
-			data: {
-				amount: paymentIntent.amount,
-				currency: paymentIntent.currency.toUpperCase(),
-				...(buyerID !== undefined ? { customer: buyerID } : { customerEmail: current.customerEmail }),
-				items: cartItemsSnapshot,
-				shippingAddress,
-				status: 'processing',
-				transactions: [transactionID],
-				tenant: cartTenant,
-			},
-			req,
+		// From here on the settlement writes on the payment provider's say-so, not the caller's.
+		// The caller's right to settle was checked by `authorize` above, and every value below
+		// comes from the transaction or the PaymentIntent. `withSystemWrite` is what keeps the
+		// multi-tenant plugin from refusing the order's `tenant` when the buyer does not belong
+		// to the store they just bought from — see its own comment.
+		return await withSystemWrite(req, async () => {
+			const order = await payload.create({
+				collection: ordersSlug,
+				data: {
+					amount: paymentIntent.amount,
+					currency: paymentIntent.currency.toUpperCase(),
+					...(buyerID !== undefined ? { customer: buyerID } : { customerEmail: current.customerEmail }),
+					items: cartItemsSnapshot,
+					shippingAddress,
+					status: 'processing',
+					transactions: [transactionID],
+					tenant: cartTenant,
+				},
+				req,
+			})
+
+			const timestamp = new Date().toISOString()
+
+			await payload.update({
+				id: cartID,
+				collection: 'carts',
+				data: {
+					purchasedAt: timestamp,
+				},
+				req,
+			})
+
+			await payload.update({
+				id: transactionID,
+				collection: transactionsSlug,
+				data: {
+					order: order.id,
+					status: 'succeeded',
+				},
+				req,
+			})
+
+			await decrementInventoryForTransaction({ productsSlug, req, transactionID, transactionsSlug, variantsSlug })
+
+			return {
+				...(order.accessToken ? { accessToken: order.accessToken as string } : {}),
+				orderID: order.id,
+				status: 'created',
+				transactionID,
+			}
 		})
-
-		const timestamp = new Date().toISOString()
-
-		await payload.update({
-			id: cartID,
-			collection: 'carts',
-			data: {
-				purchasedAt: timestamp,
-			},
-			req,
-		})
-
-		await payload.update({
-			id: transactionID,
-			collection: transactionsSlug,
-			data: {
-				order: order.id,
-				status: 'succeeded',
-			},
-			req,
-		})
-
-		await decrementInventoryForTransaction({ productsSlug, req, transactionID, transactionsSlug, variantsSlug })
-
-		return {
-			...(order.accessToken ? { accessToken: order.accessToken as string } : {}),
-			orderID: order.id,
-			status: 'created',
-			transactionID,
-		}
 	})
 }
