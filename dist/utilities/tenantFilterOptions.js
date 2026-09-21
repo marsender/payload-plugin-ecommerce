@@ -108,6 +108,12 @@ const readUserTenantIDs = (req, multiTenant)=>{
  *    tenant belongs to none at all — so the tenant clause could never match their own account, and
  *    their own cart, order or address would fail validation.
  *
+ * It also answers with the customer's own id ALONE when `userCanQueryCustomerTenants` says they
+ * may not read the memberships array. Since Payload 3.90 a `filterOptions` result is validated
+ * under the requester's own access, so a clause on a path they may not read throws and is
+ * swallowed into "no options" — refusing the very write it was meant to permit. See that option's
+ * note; it narrows nothing, since such a user has no picker and may name only themselves.
+ *
  * Neither escape widens the picker, and that distinction is the point: stepping aside outright for
  * a user who may act on every tenant, as this did before, offered every tenant's accounts as the
  * customer of a hand-created order. An escape has to cover the write without widening what the
@@ -129,12 +135,24 @@ const readUserTenantIDs = (req, multiTenant)=>{
         if (!tenantIDs) {
             return true;
         }
+        const userID = toID(args.req.user);
+        if (multiTenant.userCanQueryCustomerTenants?.(args.req.user) === false) {
+            // A user with no usable id can name nobody; unreachable in practice, safe if it is not.
+            return userID === null ? {
+                id: {
+                    equals: null
+                }
+            } : {
+                id: {
+                    equals: userID
+                }
+            };
+        }
         const inTenant = {
             [`${arrayFieldName}.${arrayTenantFieldName}`]: {
                 in: tenantIDs
             }
         };
-        const userID = toID(args.req.user);
         return userID === null ? inTenant : {
             or: [
                 inTenant,

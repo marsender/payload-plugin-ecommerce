@@ -309,6 +309,22 @@ export type MultiTenantConfig = {
      */
     tenantsSlug?: string;
     /**
+     * Returns true for a user who may READ another account's tenant memberships, and so may query
+     * the customers array field that {@link customerTenantFilterOptions} filters on.
+     *
+     * Since Payload 3.90, `validateFilterOptions` runs a `filterOptions` result under the
+     * requester's own access (`overrideAccess: overrideAccess ?? false`, previously unrestricted).
+     * A `where` naming a path they may not read throws `QueryError`, which that validator swallows
+     * into "no options" — so their own write is refused, naming the id they legitimately chose. A
+     * host whose customers cannot read that array must say so here, or no customer will be able to
+     * create a cart, an order or an address for themselves.
+     *
+     * Returning false does not narrow what anyone may do: such a user has no admin panel to show a
+     * picker in, and the only account they may name is their own, which is what the filter then
+     * returns. Omitted, every user is assumed able to query it — the behaviour before 3.90.
+     */
+    userCanQueryCustomerTenants?: (user: unknown) => boolean;
+    /**
      * Returns true for a user who may act on every tenant (a platform super-admin). Their pickers
      * are left unscoped when the admin panel has no tenant selected; everyone else falls back to
      * the tenants they belong to. Without it, such a user is scoped to their own memberships,
