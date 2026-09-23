@@ -22,6 +22,8 @@ import type {
   EcommerceContextType,
 } from '../../types/index.js'
 
+import { safeLocalStorage } from './safeStorage.js'
+
 const defaultContext: EcommerceContextType = {
   addItem: async () => {},
   clearCart: async () => {},
@@ -335,15 +337,15 @@ export const EcommerceProvider: React.FC<ContextProps> = ({
     if (hasRendered.current) {
       if (syncLocalStorage) {
         if (cartID) {
-          localStorage.setItem(localStorageConfig.key, cartID as string)
+          safeLocalStorage.setItem(localStorageConfig.key, cartID as string)
         } else {
-          localStorage.removeItem(localStorageConfig.key)
+          safeLocalStorage.removeItem(localStorageConfig.key)
         }
 
         if (cartSecret) {
-          localStorage.setItem(`${localStorageConfig.key}_secret`, cartSecret)
+          safeLocalStorage.setItem(`${localStorageConfig.key}_secret`, cartSecret)
         } else {
-          localStorage.removeItem(`${localStorageConfig.key}_secret`)
+          safeLocalStorage.removeItem(`${localStorageConfig.key}_secret`)
         }
       }
     }
@@ -885,8 +887,8 @@ export const EcommerceProvider: React.FC<ContextProps> = ({
     setUser(null)
 
     if (syncLocalStorage) {
-      localStorage.removeItem(localStorageConfig.key)
-      localStorage.removeItem(`${localStorageConfig.key}_secret`)
+      safeLocalStorage.removeItem(localStorageConfig.key)
+      safeLocalStorage.removeItem(`${localStorageConfig.key}_secret`)
     }
   }, [localStorageConfig.key, syncLocalStorage])
 
@@ -966,7 +968,7 @@ export const EcommerceProvider: React.FC<ContextProps> = ({
     // Clear the guest cart secret - authenticated users don't need it
     setCartSecret(undefined)
     if (syncLocalStorage) {
-      localStorage.removeItem(`${localStorageConfig.key}_secret`)
+      safeLocalStorage.removeItem(`${localStorageConfig.key}_secret`)
     }
 
     // Check if user has an existing cart
@@ -1031,7 +1033,7 @@ export const EcommerceProvider: React.FC<ContextProps> = ({
 
     // Update localStorage with user's cart ID (no secret needed)
     if (syncLocalStorage && cartID) {
-      localStorage.setItem(localStorageConfig.key, cartID as string)
+      safeLocalStorage.setItem(localStorageConfig.key, cartID as string)
     }
   }, [
     baseAPIURL,
@@ -1050,8 +1052,8 @@ export const EcommerceProvider: React.FC<ContextProps> = ({
   useEffect(() => {
     if (!hasRendered.current) {
       if (syncLocalStorage) {
-        const storedCartID = localStorage.getItem(localStorageConfig.key)
-        const storedSecret = localStorage.getItem(`${localStorageConfig.key}_secret`)
+        const storedCartID = safeLocalStorage.getItem(localStorageConfig.key)
+        const storedSecret = safeLocalStorage.getItem(`${localStorageConfig.key}_secret`)
 
         if (storedCartID) {
           getCart(storedCartID, { secret: storedSecret || undefined })
@@ -1065,8 +1067,8 @@ export const EcommerceProvider: React.FC<ContextProps> = ({
             .catch((_) => {
               // console.error('Error fetching cart from localStorage:', error)
               // If there's an error fetching the cart, clear it from localStorage
-              localStorage.removeItem(localStorageConfig.key)
-              localStorage.removeItem(`${localStorageConfig.key}_secret`)
+              safeLocalStorage.removeItem(localStorageConfig.key)
+              safeLocalStorage.removeItem(`${localStorageConfig.key}_secret`)
               setCartID(undefined)
               setCart(undefined)
               setCartSecret(undefined)

@@ -3,6 +3,7 @@ import { jsx as _jsx } from "react/jsx-runtime";
 import { deepMergeSimple, formatAdminURL } from 'payload/shared';
 import * as qs from 'qs-esm';
 import React, { createContext, use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { safeLocalStorage } from './safeStorage.js';
 const defaultContext = {
     addItem: async ()=>{},
     clearCart: async ()=>{},
@@ -266,14 +267,14 @@ export const EcommerceProvider = ({ addressesSlug = 'addresses', api, cartsSlug 
         if (hasRendered.current) {
             if (syncLocalStorage) {
                 if (cartID) {
-                    localStorage.setItem(localStorageConfig.key, cartID);
+                    safeLocalStorage.setItem(localStorageConfig.key, cartID);
                 } else {
-                    localStorage.removeItem(localStorageConfig.key);
+                    safeLocalStorage.removeItem(localStorageConfig.key);
                 }
                 if (cartSecret) {
-                    localStorage.setItem(`${localStorageConfig.key}_secret`, cartSecret);
+                    safeLocalStorage.setItem(`${localStorageConfig.key}_secret`, cartSecret);
                 } else {
-                    localStorage.removeItem(`${localStorageConfig.key}_secret`);
+                    safeLocalStorage.removeItem(`${localStorageConfig.key}_secret`);
                 }
             }
         }
@@ -785,8 +786,8 @@ export const EcommerceProvider = ({ addressesSlug = 'addresses', api, cartsSlug 
         setAddresses(undefined);
         setUser(null);
         if (syncLocalStorage) {
-            localStorage.removeItem(localStorageConfig.key);
-            localStorage.removeItem(`${localStorageConfig.key}_secret`);
+            safeLocalStorage.removeItem(localStorageConfig.key);
+            safeLocalStorage.removeItem(`${localStorageConfig.key}_secret`);
         }
     }, [
         localStorageConfig.key,
@@ -859,7 +860,7 @@ export const EcommerceProvider = ({ addressesSlug = 'addresses', api, cartsSlug 
         // Clear the guest cart secret - authenticated users don't need it
         setCartSecret(undefined);
         if (syncLocalStorage) {
-            localStorage.removeItem(`${localStorageConfig.key}_secret`);
+            safeLocalStorage.removeItem(`${localStorageConfig.key}_secret`);
         }
         // Check if user has an existing cart
         const userCartID = fetchedUser.cart?.docs && fetchedUser.cart.docs.length > 0 ? typeof fetchedUser.cart.docs[0] === 'object' ? fetchedUser.cart.docs[0].id : fetchedUser.cart.docs[0] : undefined;
@@ -912,7 +913,7 @@ export const EcommerceProvider = ({ addressesSlug = 'addresses', api, cartsSlug 
         }
         // Update localStorage with user's cart ID (no secret needed)
         if (syncLocalStorage && cartID) {
-            localStorage.setItem(localStorageConfig.key, cartID);
+            safeLocalStorage.setItem(localStorageConfig.key, cartID);
         }
     }, [
         baseAPIURL,
@@ -930,8 +931,8 @@ export const EcommerceProvider = ({ addressesSlug = 'addresses', api, cartsSlug 
     useEffect(()=>{
         if (!hasRendered.current) {
             if (syncLocalStorage) {
-                const storedCartID = localStorage.getItem(localStorageConfig.key);
-                const storedSecret = localStorage.getItem(`${localStorageConfig.key}_secret`);
+                const storedCartID = safeLocalStorage.getItem(localStorageConfig.key);
+                const storedSecret = safeLocalStorage.getItem(`${localStorageConfig.key}_secret`);
                 if (storedCartID) {
                     getCart(storedCartID, {
                         secret: storedSecret || undefined
@@ -944,8 +945,8 @@ export const EcommerceProvider = ({ addressesSlug = 'addresses', api, cartsSlug 
                     }).catch((_)=>{
                         // console.error('Error fetching cart from localStorage:', error)
                         // If there's an error fetching the cart, clear it from localStorage
-                        localStorage.removeItem(localStorageConfig.key);
-                        localStorage.removeItem(`${localStorageConfig.key}_secret`);
+                        safeLocalStorage.removeItem(localStorageConfig.key);
+                        safeLocalStorage.removeItem(`${localStorageConfig.key}_secret`);
                         setCartID(undefined);
                         setCart(undefined);
                         setCartSecret(undefined);
