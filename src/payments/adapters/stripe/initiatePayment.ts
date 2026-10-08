@@ -22,10 +22,11 @@ export const initiatePayment: (props: Props) => NonNullable<PaymentAdapter>['ini
 		const customerEmail = data.customerEmail
 		const currency = data.currency
 		const cart = data.cart
-		// Compute payable amount: subtract coupon discount from subtotal when present
+		// The discount is the endpoint's (see `carts.resolveDiscount`), never read off the cart: a
+		// stored value is whatever was last written to it.
 		const subtotal = cart.subtotal ?? 0
-		const discountAmount = (typeof cart.discountAmount === 'number' && cart.discountAmount > 0) ? cart.discountAmount : 0
-		const amount = discountAmount > 0 ? Math.max(0, Math.round((subtotal - discountAmount) * 100) / 100) : cart.subtotal
+		const discountAmount = typeof data.discountAmount === 'number' && data.discountAmount > 0 ? data.discountAmount : 0
+		const amount = Math.max(0, Math.round(subtotal - discountAmount))
 		const billingAddressFromData = data.billingAddress
 		const shippingAddressFromData = data.shippingAddress
 

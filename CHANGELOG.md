@@ -9,6 +9,21 @@ PayloadCMS compatibility.
 
 ---
 
+## [3.90.4] — 2026-10-08
+
+### Added
+
+- `carts.resolveDiscount`: the consumer computes the discount `initiatePayment` subtracts from
+  the subtotal, once per initiation, after product validation. A throw is answered like a
+  validation failure (400, `cause` kept). Without it, `cart.discountAmount` is used as before.
+
+### Changed
+
+- The Stripe adapter charges `subtotal - data.discountAmount` (passed by the endpoint, clamped to
+  `[0, subtotal]`) and no longer reads `cart.discountAmount` itself.
+
+---
+
 ## [3.89.7] — 2026-09-15
 
 ### Fixed

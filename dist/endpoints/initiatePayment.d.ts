@@ -1,5 +1,5 @@
 import { type Endpoint } from 'payload';
-import type { CurrenciesConfig, PaymentAdapter, ProductsValidation, SanitizedEcommercePluginConfig } from '../types/index.js';
+import type { CurrenciesConfig, PaymentAdapter, ProductsValidation, ResolveCartDiscount, SanitizedEcommercePluginConfig } from '../types/index.js';
 type Args = {
     /**
      * Allow an unauthenticated caller to pay. Defaults to true.
@@ -28,6 +28,10 @@ type Args = {
      * Customise the validation used for checking products or variants before a transaction is created.
      */
     productsValidation?: ProductsValidation;
+    /**
+     * The discount to subtract from the subtotal, computed by the consumer. See `CartsConfig`.
+     */
+    resolveDiscount?: ResolveCartDiscount;
     /**
      * The slug of the transactions collection, defaults to 'transactions'.
      */

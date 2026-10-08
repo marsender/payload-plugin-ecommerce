@@ -51,8 +51,8 @@ type DefaultCartType = {
   currency?: string
   customer?: DefaultDocumentIDType | TypedCollection['customers']
   /**
-   * Discount amount applied by coupon/referral plugins.
-   * Optional field set by external plugins like @wtree/payload-ecommerce-coupon.
+   * Discount amount shown on the cart, in the cart's minor unit, set by the consumer.
+   * Never what `initiatePayment` charges from: that is `carts.resolveDiscount` when configured.
    */
   discountAmount?: number
   id: DefaultDocumentIDType
@@ -90,6 +90,12 @@ type InitiatePayment = (args: {
      */
     currency: string
     customerEmail: string
+    /**
+     * Amount to subtract from the cart subtotal, in the cart's minor unit, already clamped to
+     * `[0, subtotal]` by the endpoint. Comes from `carts.resolveDiscount` when configured,
+     * otherwise from `cart.discountAmount`.
+     */
+    discountAmount?: number
     /**
      * Shipping address for the payment.
      */
@@ -664,7 +670,23 @@ export type CartsConfig = {
    * Guest access via secret is still supported.
    */
   multiTenant?: MultiTenantConfig
+  /**
+   * The discount, in the cart's minor unit, that `initiatePayment` subtracts from the subtotal.
+   * Called once per initiation, after product validation and before the payment adapter, so the
+   * amount charged is the consumer's own computation rather than a value stored on the cart. A
+   * throw is answered like a validation failure: status 400, with the error's `cause` in the
+   * body. When omitted, `cart.discountAmount` is used.
+   */
+  resolveDiscount?: ResolveCartDiscount
 }
+
+export type ResolveCartDiscount = (args: {
+  cart: Cart
+  currency: string
+  customerEmail: string
+  req: PayloadRequest
+  user: null | TypedUser
+}) => Promise<number>
 
 export type InventoryConfig = {
   /**

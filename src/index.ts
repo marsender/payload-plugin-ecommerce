@@ -265,6 +265,9 @@ export const ecommercePlugin =
             ? sanitizedPluginConfig.carts.allowGuestCheckout !== false
             : true
 
+        const resolveDiscount =
+          typeof sanitizedPluginConfig.carts === 'object' ? sanitizedPluginConfig.carts.resolveDiscount : undefined
+
         paymentMethods.forEach((paymentMethod) => {
           const methodPath = `/payments/${paymentMethod.name}`
           const endpoints: Endpoint[] = []
@@ -277,6 +280,7 @@ export const ecommercePlugin =
               paymentMethod,
               productsSlug: collectionSlugMap.products,
               productsValidation,
+              resolveDiscount,
               transactionsSlug: collectionSlugMap.transactions,
               variantsSlug: collectionSlugMap.variants,
             }),

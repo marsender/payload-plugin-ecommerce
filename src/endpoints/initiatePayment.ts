@@ -1,6 +1,6 @@
 import { addDataAndFileToRequest, type DefaultDocumentIDType, type Endpoint } from 'payload'
 
-import type { CurrenciesConfig, PaymentAdapter, ProductsValidation, SanitizedEcommercePluginConfig } from '../types/index.js'
+import type { CurrenciesConfig, PaymentAdapter, ProductsValidation, ResolveCartDiscount, SanitizedEcommercePluginConfig } from '../types/index.js'
 
 import { GuestCheckoutDisabled } from '../utilities/errorCodes.js'
 
@@ -35,6 +35,10 @@ type Args = {
 	 */
 	productsValidation?: ProductsValidation
 	/**
+	 * The discount to subtract from the subtotal, computed by the consumer. See `CartsConfig`.
+	 */
+	resolveDiscount?: ResolveCartDiscount
+	/**
 	 * The slug of the transactions collection, defaults to 'transactions'.
 	 */
 	transactionsSlug?: string
@@ -51,7 +55,7 @@ type InitiatePayment = (args: Args) => Endpoint['handler']
  * This is the first step in the payment process.
  */
 export const initiatePaymentHandler: InitiatePayment =
-	({ allowGuestCheckout = true, cartsSlug = 'carts', currenciesConfig, customersSlug = 'users', paymentMethod, productsSlug = 'products', productsValidation, transactionsSlug = 'transactions', variantsSlug = 'variants' }) =>
+	({ allowGuestCheckout = true, cartsSlug = 'carts', currenciesConfig, customersSlug = 'users', paymentMethod, productsSlug = 'products', productsValidation, resolveDiscount, transactionsSlug = 'transactions', variantsSlug = 'variants' }) =>
 	async (req) => {
 		await addDataAndFileToRequest(req)
 		const data = req.data
@@ -265,6 +269,30 @@ export const initiatePaymentHandler: InitiatePayment =
 			}
 		}
 
+		// The amount charged is the subtotal minus this discount. With `resolveDiscount` it is the
+		// consumer's own computation, made now; the value stored on the cart is only what the cart
+		// last displayed, and anything a client can write to.
+		let discountAmount: number
+		try {
+			const raw = resolveDiscount
+				? await resolveDiscount({ cart, currency, customerEmail, req, user: user ?? null })
+				: cart.discountAmount
+			const subtotal = cart.subtotal ?? 0
+			discountAmount = typeof raw === 'number' && Number.isFinite(raw) ? Math.min(Math.max(0, raw), subtotal) : 0
+		} catch (error) {
+			payload.logger.error(error, 'Error resolving the cart discount during payment initiation.')
+
+			return Response.json(
+				{
+					message: error,
+					...(error instanceof Error ? { cause: error.cause } : {}),
+				},
+				{
+					status: 400,
+				}
+			)
+		}
+
 		try {
 			const paymentResponse = await paymentMethod.initiatePayment({
 				customersSlug,
@@ -273,6 +301,7 @@ export const initiatePaymentHandler: InitiatePayment =
 					cart,
 					currency,
 					customerEmail,
+					discountAmount,
 					shippingAddress,
 				},
 				req,

@@ -156,6 +156,7 @@ export const ecommercePlugin = (pluginConfig)=>async (incomingConfig)=>{
                 // where its sibling `allowGuestCarts` lives, but it governs the payment endpoints, not
                 // the carts collection: the two are routinely set to opposite values.
                 const allowGuestCheckout = typeof sanitizedPluginConfig.carts === 'object' ? sanitizedPluginConfig.carts.allowGuestCheckout !== false : true;
+                const resolveDiscount = typeof sanitizedPluginConfig.carts === 'object' ? sanitizedPluginConfig.carts.resolveDiscount : undefined;
                 paymentMethods.forEach((paymentMethod)=>{
                     const methodPath = `/payments/${paymentMethod.name}`;
                     const endpoints = [];
@@ -167,6 +168,7 @@ export const ecommercePlugin = (pluginConfig)=>async (incomingConfig)=>{
                             paymentMethod,
                             productsSlug: collectionSlugMap.products,
                             productsValidation,
+                            resolveDiscount,
                             transactionsSlug: collectionSlugMap.transactions,
                             variantsSlug: collectionSlugMap.variants
                         }),

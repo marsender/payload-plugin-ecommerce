@@ -4,7 +4,7 @@ import { defaultProductsValidation } from '../utilities/defaultProductsValidatio
 /**
  * Handles the endpoint for initiating payments. We will handle checking the amount and product and variant prices here before it is sent to the payment provider.
  * This is the first step in the payment process.
- */ export const initiatePaymentHandler = ({ allowGuestCheckout = true, cartsSlug = 'carts', currenciesConfig, customersSlug = 'users', paymentMethod, productsSlug = 'products', productsValidation, transactionsSlug = 'transactions', variantsSlug = 'variants' })=>async (req)=>{
+ */ export const initiatePaymentHandler = ({ allowGuestCheckout = true, cartsSlug = 'carts', currenciesConfig, customersSlug = 'users', paymentMethod, productsSlug = 'products', productsValidation, resolveDiscount, transactionsSlug = 'transactions', variantsSlug = 'variants' })=>async (req)=>{
         await addDataAndFileToRequest(req);
         const data = req.data;
         const payload = req.payload;
@@ -177,6 +177,31 @@ import { defaultProductsValidation } from '../utilities/defaultProductsValidatio
                 });
             }
         }
+        // The amount charged is the subtotal minus this discount. With `resolveDiscount` it is the
+        // consumer's own computation, made now; the value stored on the cart is only what the cart
+        // last displayed, and anything a client can write to.
+        let discountAmount;
+        try {
+            const raw = resolveDiscount ? await resolveDiscount({
+                cart,
+                currency,
+                customerEmail,
+                req,
+                user: user ?? null
+            }) : cart.discountAmount;
+            const subtotal = cart.subtotal ?? 0;
+            discountAmount = typeof raw === 'number' && Number.isFinite(raw) ? Math.min(Math.max(0, raw), subtotal) : 0;
+        } catch (error) {
+            payload.logger.error(error, 'Error resolving the cart discount during payment initiation.');
+            return Response.json({
+                message: error,
+                ...error instanceof Error ? {
+                    cause: error.cause
+                } : {}
+            }, {
+                status: 400
+            });
+        }
         try {
             const paymentResponse = await paymentMethod.initiatePayment({
                 customersSlug,
@@ -185,6 +210,7 @@ import { defaultProductsValidation } from '../utilities/defaultProductsValidatio
                     cart,
                     currency,
                     customerEmail,
+                    discountAmount,
                     shippingAddress
                 },
                 req,
