@@ -1,6 +1,5 @@
 import { populateTenant } from '../../utilities/populateTenant.js';
-import { tenantBaseListFilter } from '../../utilities/tenantBaseListFilter.js';
-import { hasTenantAccess } from '../carts/cartTenantAccess.js';
+import { tenantAdminAccess, tenantListFilter } from '../../utilities/tenantAdminAccess.js';
 export const createVariantTypesCollection = (props)=>{
     const { access, multiTenant, variantOptionsSlug = 'variantOptions' } = props || {};
     const tenantsSlug = multiTenant?.tenantsSlug || 'tenants';
@@ -39,10 +38,10 @@ export const createVariantTypesCollection = (props)=>{
             orderable: true
         }
     ];
-    // Admin access: when multiTenant is enabled, use tenant-scoped access; otherwise use isAdmin
-    const adminAccess = multiTenant?.enabled ? hasTenantAccess({
-        isAdmin: access.isAdmin
-    }) : access.isAdmin;
+    const adminAccess = tenantAdminAccess({
+        isAdmin: access.isAdmin,
+        multiTenant
+    });
     const baseConfig = {
         slug: 'variantTypes',
         access: {
@@ -55,7 +54,7 @@ export const createVariantTypesCollection = (props)=>{
             group: false,
             useAsTitle: 'label',
             ...multiTenant?.enabled && {
-                baseListFilter: tenantBaseListFilter()
+                baseListFilter: tenantListFilter(multiTenant)
             }
         },
         fields,

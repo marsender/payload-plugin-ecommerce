@@ -2,7 +2,7 @@ import { amountField } from '../../fields/amountField.js';
 import { cartItemsField } from '../../fields/cartItemsField.js';
 import { currencyField } from '../../fields/currencyField.js';
 import { accessOR } from '../../utilities/accessComposition.js';
-import { hasTenantAccess } from '../carts/cartTenantAccess.js';
+import { tenantAdminAccess } from '../../utilities/tenantAdminAccess.js';
 import { beforeChangeOrder } from './beforeChange.js';
 import { customerTenantFilterOptions, tenantScopedFilterOptions, toID, withFilterOptions } from '../../utilities/tenantFilterOptions.js';
 export const createOrdersCollection = (props)=>{
@@ -216,10 +216,10 @@ export const createOrdersCollection = (props)=>{
             }
         ] : []
     ];
-    // Admin access: when multiTenant is enabled, use tenant-scoped access; otherwise use isAdmin
-    const adminAccess = multiTenant?.enabled ? hasTenantAccess({
-        isAdmin: access.isAdmin
-    }) : access.isAdmin;
+    const adminAccess = tenantAdminAccess({
+        isAdmin: access.isAdmin,
+        multiTenant
+    });
     const baseConfig = {
         slug: 'orders',
         access: {

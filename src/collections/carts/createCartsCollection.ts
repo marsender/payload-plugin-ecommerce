@@ -8,7 +8,7 @@ import { cartItemsField } from '../../fields/cartItemsField.js'
 import { currencyField } from '../../fields/currencyField.js'
 import { accessOR, conditional } from '../../utilities/accessComposition.js'
 import { beforeChangeCart } from './beforeChange.js'
-import { hasTenantAccess } from './cartTenantAccess.js'
+import { tenantAdminAccess, tenantListFilter } from '../../utilities/tenantAdminAccess.js'
 import { addItemEndpoint } from './endpoints/addItem.js'
 import { clearCartEndpoint } from './endpoints/clearCart.js'
 import { mergeCartEndpoint } from './endpoints/mergeCart.js'
@@ -17,7 +17,6 @@ import { updateItemEndpoint } from './endpoints/updateItem.js'
 import { hasCartSecretAccess } from './hasCartSecretAccess.js'
 import { populateTenant } from '../../utilities/populateTenant.js'
 import { statusBeforeRead } from './statusBeforeRead.js'
-import { tenantBaseListFilter } from '../../utilities/tenantBaseListFilter.js'
 import {
   customerTenantFilterOptions,
   withFilterOptions,
@@ -226,8 +225,7 @@ export const createCartsCollection: (props: Props) => CollectionConfig = (props)
   // Internal access function for guest users (unauthenticated)
   const isGuest: Access = ({ req }) => !req.user
 
-  // Admin access: when multiTenant is enabled, use tenant-scoped access; otherwise use isAdmin
-  const adminAccess = multiTenant?.enabled ? hasTenantAccess({ isAdmin: access.isAdmin }) : access.isAdmin
+  const adminAccess = tenantAdminAccess({ isAdmin: access.isAdmin, multiTenant })
 
   const baseConfig: CollectionConfig = {
     slug: cartsSlug,
@@ -245,7 +243,7 @@ export const createCartsCollection: (props: Props) => CollectionConfig = (props)
       useAsTitle: 'createdAt',
       // Filter list view by tenant when multiTenant is enabled
       ...(multiTenant?.enabled && {
-        baseListFilter: tenantBaseListFilter(),
+        baseListFilter: tenantListFilter(multiTenant),
       }),
     },
     endpoints: [

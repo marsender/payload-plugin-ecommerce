@@ -10,12 +10,11 @@ import type {
 import { inventoryField } from '../../../fields/inventoryField.js'
 import { pricesField } from '../../../fields/pricesField.js'
 import { populateTenant } from '../../../utilities/populateTenant.js'
-import { tenantBaseListFilter } from '../../../utilities/tenantBaseListFilter.js'
 import {
   tenantScopedFilterOptions,
   withFilterOptions,
 } from '../../../utilities/tenantFilterOptions.js'
-import { hasTenantAccess } from '../../carts/cartTenantAccess.js'
+import { tenantAdminAccess, tenantListFilter } from '../../../utilities/tenantAdminAccess.js'
 import { variantsCollectionBeforeChange as beforeChange } from './hooks/beforeChange.js'
 import { validateOptions } from './hooks/validateOptions.js'
 
@@ -139,10 +138,7 @@ export const createVariantsCollection: (props: Props) => CollectionConfig = (pro
     }
   }
 
-  // Admin access: when multiTenant is enabled, use tenant-scoped access; otherwise use isAdmin
-  const adminAccess = multiTenant?.enabled
-    ? hasTenantAccess({ isAdmin: access.isAdmin })
-    : access.isAdmin
+  const adminAccess = tenantAdminAccess({ isAdmin: access.isAdmin, multiTenant })
 
   const baseConfig: CollectionConfig = {
     slug: 'variants',
@@ -159,7 +155,7 @@ export const createVariantsCollection: (props: Props) => CollectionConfig = (pro
       group: false,
       useAsTitle: 'title',
       ...(multiTenant?.enabled && {
-        baseListFilter: tenantBaseListFilter(),
+        baseListFilter: tenantListFilter(multiTenant),
       }),
     },
     fields,

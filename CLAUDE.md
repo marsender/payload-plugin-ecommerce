@@ -129,7 +129,7 @@ When `carts.multiTenant.enabled = true`:
 - Do NOT add `carts` to `@payloadcms/plugin-multi-tenant` collections list
 - Tenant is auto-populated from `payload-tenant` or `payload-tenant-domain` cookies
 - Access is scoped: super-admins see all, tenant-admins see their tenant, users see own carts, guests use secret tokens
-- The same `hasTenantAccess` admin branch scopes addresses, orders, transactions and variants: never a bare `isAdmin`, which is true for an admin of any tenant
+- Every tenant-scoped collection (addresses, carts, orders, products, transactions, variants) takes its read/update/delete admin branch from `tenantAdminAccess` (`src/utilities/tenantAdminAccess.ts`): the host's `multiTenant.tenantAdminAccess`, else `hasTenantAccess`. Never a bare `isAdmin`, which is true for an admin of any tenant
 
 ## Stripe Notes
 

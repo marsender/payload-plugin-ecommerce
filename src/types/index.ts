@@ -1,5 +1,6 @@
 import type {
   Access,
+  BaseListFilter,
   CollectionConfig,
   CollectionSlug,
   DefaultDocumentIDType,
@@ -374,6 +375,22 @@ export type MultiTenantConfig = {
    * which a platform super-admin typically has none of.
    */
   userHasAccessToAllTenants?: (user: unknown) => boolean
+  /**
+   * The admin branch of every rule this plugin scopes by tenant: read, update and delete of
+   * addresses, carts, orders, products, transactions and variants. Give the host's own rule so the
+   * plugin's collections and the host's apply the same one: an admin reaches the tenants where they
+   * hold the admin role, never every tenant they belong to.
+   *
+   * Omitted, `hasTenantAccess` is used: it reads a `roles` array on each membership, and narrows
+   * to the tenant the admin panel has selected.
+   */
+  tenantAdminAccess?: Access
+  /**
+   * The list-view filter of the collections that carry their own `tenant` field (carts,
+   * transactions, variants). Give the host's own, for the same reason. Omitted,
+   * `tenantBaseListFilter()`.
+   */
+  baseListFilter?: BaseListFilter
 }
 
 export type VariantsConfig = {

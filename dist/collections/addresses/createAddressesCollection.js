@@ -1,5 +1,5 @@
 import { accessOR } from '../../utilities/accessComposition.js';
-import { hasTenantAccess } from '../carts/cartTenantAccess.js';
+import { tenantAdminAccess } from '../../utilities/tenantAdminAccess.js';
 import { customerTenantFilterOptions, withFilterOptions } from '../../utilities/tenantFilterOptions.js';
 import { defaultCountries } from './defaultCountries.js';
 import { beforeChange } from './hooks/beforeChange.js';
@@ -37,10 +37,10 @@ export const createAddressesCollection = (props)=>{
             return field;
         })
     ];
-    // Admin access: when multiTenant is enabled, use tenant-scoped access; otherwise use isAdmin
-    const adminAccess = multiTenant?.enabled ? hasTenantAccess({
-        isAdmin: access.isAdmin
-    }) : access.isAdmin;
+    const adminAccess = tenantAdminAccess({
+        isAdmin: access.isAdmin,
+        multiTenant
+    });
     const baseConfig = {
         slug: 'addresses',
         access: {

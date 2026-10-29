@@ -1,5 +1,5 @@
 import type { CollectionConfig } from 'payload';
-import type { AccessConfig, CurrenciesConfig, InventoryConfig } from '../../types/index.js';
+import type { AccessConfig, CurrenciesConfig, InventoryConfig, MultiTenantConfig } from '../../types/index.js';
 type Props = {
     access: Pick<AccessConfig, 'adminOrPublishedStatus' | 'isAdmin'>;
     currenciesConfig: CurrenciesConfig;
@@ -10,13 +10,11 @@ type Props = {
      */
     inventory?: boolean | InventoryConfig;
     /**
-     * Multi-tenant configuration for variants.
-     * When enabled, the variantTypes relationship will be filtered by the product's tenant.
+     * Multi-tenant configuration. When enabled, update and delete take the tenant-scoped admin
+     * branch (`tenantAdminAccess`) and the variantTypes relationship is filtered by the product's
+     * tenant.
      */
-    multiTenant?: {
-        enabled: boolean;
-        tenantsSlug?: string;
-    };
+    multiTenant?: MultiTenantConfig;
     /**
      * Slug of the variants collection, defaults to 'variants'.
      */

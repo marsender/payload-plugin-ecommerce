@@ -36,8 +36,8 @@ type Props = {
 }
 
 /**
- * Creates an access function that filters carts by tenant for admin users. Also the admin branch
- * of addresses, orders, transactions and variants.
+ * The default admin branch of the tenant-scoped collections (`tenantAdminAccess`), when the host
+ * gives no `multiTenant.tenantAdminAccess` of its own.
  *
  * A plain `isAdmin` there is true for an admin of ANY tenant, which opens every tenant's documents
  * to them: all of them on a collection not registered with `@payloadcms/plugin-multi-tenant`

@@ -1,10 +1,16 @@
 import type { CollectionConfig } from 'payload'
 
-import type { AccessConfig, CurrenciesConfig, InventoryConfig } from '../../types/index.js'
+import type {
+  AccessConfig,
+  CurrenciesConfig,
+  InventoryConfig,
+  MultiTenantConfig,
+} from '../../types/index.js'
 
 import { inventoryField } from '../../fields/inventoryField.js'
 import { pricesField } from '../../fields/pricesField.js'
 import { variantsFields } from '../../fields/variantsFields.js'
+import { tenantAdminAccess } from '../../utilities/tenantAdminAccess.js'
 import { deleteVariantsBeforeProductDelete } from './hooks/beforeDelete.js'
 
 type Props = {
@@ -17,13 +23,11 @@ type Props = {
    */
   inventory?: boolean | InventoryConfig
   /**
-   * Multi-tenant configuration for variants.
-   * When enabled, the variantTypes relationship will be filtered by the product's tenant.
+   * Multi-tenant configuration. When enabled, update and delete take the tenant-scoped admin
+   * branch (`tenantAdminAccess`) and the variantTypes relationship is filtered by the product's
+   * tenant.
    */
-  multiTenant?: {
-    enabled: boolean
-    tenantsSlug?: string
-  }
+  multiTenant?: MultiTenantConfig
   /**
    * Slug of the variants collection, defaults to 'variants'.
    */
@@ -61,13 +65,15 @@ export const createProductsCollection: (props: Props) => CollectionConfig = (pro
     ...(currenciesConfig ? [...pricesField({ currenciesConfig })] : []),
   ]
 
+  const adminAccess = tenantAdminAccess({ isAdmin: access.isAdmin, multiTenant })
+
   const baseConfig: CollectionConfig = {
     slug: 'products',
     access: {
       create: access.isAdmin,
-      delete: access.isAdmin,
+      delete: adminAccess,
       read: access.adminOrPublishedStatus,
-      update: access.isAdmin,
+      update: adminAccess,
     },
     admin: {
       defaultColumns: [

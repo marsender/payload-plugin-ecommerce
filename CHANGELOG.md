@@ -9,6 +9,29 @@ PayloadCMS compatibility.
 
 ---
 
+## [3.90.6] — 2026-10-29
+
+### Added
+
+- `multiTenant.tenantAdminAccess`: the host's own rule for the admin branch of every collection
+  this plugin scopes by tenant, so both apply the same one. Omitted, `hasTenantAccess` as before.
+- `multiTenant.baseListFilter`: the host's own list-view filter for carts, transactions and
+  variants. Omitted, `tenantBaseListFilter()` as before.
+
+### Security
+
+- **Products are scoped by tenant for admins.** `update` and `delete` were `isAdmin`, true for an
+  admin of any tenant: with the multi-tenant plugin's membership constraint, the admin of one
+  tenant who is a customer of another could edit and delete the other's products.
+
+### Changed
+
+- One helper, `tenantAdminAccess`, gives every tenant-scoped collection its admin branch
+  (addresses, carts, orders, products, transactions, variants); `tenantListFilter` their list
+  filter. The products `multiTenant` prop takes the full `MultiTenantConfig`.
+
+---
+
 ## [3.90.5] — 2026-10-28
 
 ### Security

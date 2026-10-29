@@ -12,8 +12,7 @@ import { cartItemsField } from '../../fields/cartItemsField.js'
 import { currencyField } from '../../fields/currencyField.js'
 import { statusField } from '../../fields/statusField.js'
 import { populateTenant } from '../../utilities/populateTenant.js'
-import { hasTenantAccess } from '../carts/cartTenantAccess.js'
-import { tenantBaseListFilter } from '../../utilities/tenantBaseListFilter.js'
+import { tenantAdminAccess, tenantListFilter } from '../../utilities/tenantAdminAccess.js'
 import {
   customerTenantFilterOptions,
   tenantScopedFilterOptions,
@@ -222,8 +221,7 @@ export const createTransactionsCollection: (props: Props) => CollectionConfig = 
     : []),
   ]
 
-  // Admin access: when multiTenant is enabled, use tenant-scoped access; otherwise use isAdmin
-  const adminAccess = multiTenant?.enabled ? hasTenantAccess({ isAdmin: access.isAdmin }) : access.isAdmin
+  const adminAccess = tenantAdminAccess({ isAdmin: access.isAdmin, multiTenant })
 
   const baseConfig: CollectionConfig = {
     slug: 'transactions',
@@ -241,7 +239,7 @@ export const createTransactionsCollection: (props: Props) => CollectionConfig = 
       group: 'Ecommerce',
       // Filter list view by tenant when multiTenant is enabled
       ...(multiTenant?.enabled && {
-        baseListFilter: tenantBaseListFilter(),
+        baseListFilter: tenantListFilter(multiTenant),
       }),
     },
     fields,

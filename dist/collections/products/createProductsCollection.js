@@ -1,6 +1,7 @@
 import { inventoryField } from '../../fields/inventoryField.js';
 import { pricesField } from '../../fields/pricesField.js';
 import { variantsFields } from '../../fields/variantsFields.js';
+import { tenantAdminAccess } from '../../utilities/tenantAdminAccess.js';
 import { deleteVariantsBeforeProductDelete } from './hooks/beforeDelete.js';
 export const createProductsCollection = (props)=>{
     const { access, currenciesConfig, enableVariants = false, inventory = true, multiTenant, variantsSlug = 'variants', variantTypesSlug = 'variantTypes' } = props || {};
@@ -25,13 +26,17 @@ export const createProductsCollection = (props)=>{
             })
         ] : []
     ];
+    const adminAccess = tenantAdminAccess({
+        isAdmin: access.isAdmin,
+        multiTenant
+    });
     const baseConfig = {
         slug: 'products',
         access: {
             create: access.isAdmin,
-            delete: access.isAdmin,
+            delete: adminAccess,
             read: access.adminOrPublishedStatus,
-            update: access.isAdmin
+            update: adminAccess
         },
         admin: {
             defaultColumns: [
