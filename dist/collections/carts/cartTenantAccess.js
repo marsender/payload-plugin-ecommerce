@@ -1,6 +1,12 @@
 import { parseCookies } from 'payload';
 /**
- * Creates an access function that filters carts by tenant for admin users.
+ * Creates an access function that filters carts by tenant for admin users. Also the admin branch
+ * of addresses, orders, transactions and variants.
+ *
+ * A plain `isAdmin` there is true for an admin of ANY tenant, which opens every tenant's documents
+ * to them: all of them on a collection not registered with `@payloadcms/plugin-multi-tenant`
+ * (transactions), and on a registered one (addresses, orders) those of every tenant they merely
+ * belong to as a customer, since that plugin's constraint is membership, not role.
  *
  * For admins:
  * - Super-admins see all carts
@@ -24,9 +30,10 @@ import { parseCookies } from 'payload';
             return false;
         }
         // Check super-admin FIRST (before other checks)
-        // Super-admin: full access (returns true to bypass any Where constraints)
+        // Super-admin: full access (returns true to bypass any Where constraints). Same two
+        // conventions as `tenantBaseListFilter`: a global `roles` select or a boolean `isSuperAdmin`.
         const roles = user.roles;
-        if (roles?.some((role)=>superAdminRoles.includes(role))) {
+        if (user.isSuperAdmin === true || roles?.some((role)=>superAdminRoles.includes(role))) {
             return true;
         }
         // Get user's tenant memberships and check for tenant-admin roles

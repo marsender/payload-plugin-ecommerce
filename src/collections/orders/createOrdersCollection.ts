@@ -6,6 +6,7 @@ import { amountField } from '../../fields/amountField.js'
 import { cartItemsField } from '../../fields/cartItemsField.js'
 import { currencyField } from '../../fields/currencyField.js'
 import { accessOR } from '../../utilities/accessComposition.js'
+import { hasTenantAccess } from '../carts/cartTenantAccess.js'
 import { beforeChangeOrder } from './beforeChange.js'
 import {
   customerTenantFilterOptions,
@@ -283,13 +284,16 @@ export const createOrdersCollection: (props: Props) => CollectionConfig = (props
       : []),
   ]
 
+  // Admin access: when multiTenant is enabled, use tenant-scoped access; otherwise use isAdmin
+  const adminAccess = multiTenant?.enabled ? hasTenantAccess({ isAdmin: access.isAdmin }) : access.isAdmin
+
   const baseConfig: CollectionConfig = {
     slug: 'orders',
     access: {
       create: access.isAdmin,
-      delete: access.isAdmin,
-      read: accessOR(access.isAdmin, access.isDocumentOwner),
-      update: access.isAdmin,
+      delete: adminAccess,
+      read: accessOR(adminAccess, access.isDocumentOwner),
+      update: adminAccess,
     },
     admin: {
       description: ({ t }) =>

@@ -9,6 +9,22 @@ PayloadCMS compatibility.
 
 ---
 
+## [3.90.5] — 2026-10-28
+
+### Security
+
+- **Addresses, orders and transactions are scoped by tenant for admins.** Their admin branch was
+  `isAdmin`, which a host typically answers true for an admin of ANY tenant. With
+  `multiTenant.enabled` they now use `hasTenantAccess`, as carts and variants do: an admin reads
+  (and, where allowed, updates or deletes) only the tenants where they hold the admin role, and
+  their own documents elsewhere through `isDocumentOwner`. `create` keeps `isAdmin`.
+- **`hasTenantAccess` recognises a boolean `isSuperAdmin`**, like `tenantBaseListFilter`. A
+  super-admin without a `roles` select fell through to their own memberships.
+- **`useAddresses` lists the user's own addresses only** (`where customer equals user.id`). An
+  admin's address book and checkout listed their customers' addresses.
+
+---
+
 ## [3.90.4] — 2026-10-08
 
 ### Added

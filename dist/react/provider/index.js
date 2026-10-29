@@ -620,10 +620,17 @@ export const EcommerceProvider = ({ addressesSlug = 'addresses', api, cartsSlug 
             return;
         }
         try {
+            // Only the user's own: read access also admits an admin to their customers' addresses,
+            // which have no place in their own address book or checkout.
             const query = qs.stringify({
                 depth: 0,
                 limit: 0,
-                pagination: false
+                pagination: false,
+                where: {
+                    customer: {
+                        equals: user.id
+                    }
+                }
             });
             const response = await fetch(`${baseAPIURL}/${addressesSlug}?${query}`, {
                 credentials: 'include',

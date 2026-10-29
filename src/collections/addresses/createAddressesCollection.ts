@@ -3,6 +3,7 @@ import type { CollectionConfig, Field } from 'payload'
 import type { AccessConfig, CountryType, MultiTenantConfig } from '../../types/index.js'
 
 import { accessOR } from '../../utilities/accessComposition.js'
+import { hasTenantAccess } from '../carts/cartTenantAccess.js'
 import {
   customerTenantFilterOptions,
   withFilterOptions,
@@ -70,13 +71,16 @@ export const createAddressesCollection: (props: Props) => CollectionConfig = (pr
     }),
   ]
 
+  // Admin access: when multiTenant is enabled, use tenant-scoped access; otherwise use isAdmin
+  const adminAccess = multiTenant?.enabled ? hasTenantAccess({ isAdmin: access.isAdmin }) : access.isAdmin
+
   const baseConfig: CollectionConfig = {
     slug: 'addresses',
     access: {
       create: access.isAuthenticated,
-      delete: accessOR(access.isAdmin, access.isDocumentOwner),
-      read: accessOR(access.isAdmin, access.isDocumentOwner),
-      update: accessOR(access.isAdmin, access.isDocumentOwner),
+      delete: accessOR(adminAccess, access.isDocumentOwner),
+      read: accessOR(adminAccess, access.isDocumentOwner),
+      update: accessOR(adminAccess, access.isDocumentOwner),
     },
     admin: {
       description: ({ t }) =>
